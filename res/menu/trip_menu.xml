@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/trip_info"
+          android:icon="@drawable/ic_menu_info_details"
+          android:title="@string/menu_info" />
+    <item android:id="@+id/map_trip"
+          android:icon="@drawable/ic_menu_mapmode"
+          android:title="@string/menu_map" />             
+    <item android:id="@+id/send_trip"
+          android:icon="@drawable/ic_menu_send"
+          android:title="@string/menu_send" />    
+    <item android:id="@+id/open_trip"
+          android:icon="@drawable/ic_menu_archive"
+          android:title="@string/menu_open" />
+    <item android:id="@+id/new_trip"
+          android:icon="@drawable/ic_menu_add"
+          android:title="@string/menu_new" />      
+    <item android:id="@+id/help"
+          android:icon="@drawable/ic_menu_help"
+          android:title="@string/menu_help" /> 
+                   
+</menu>
