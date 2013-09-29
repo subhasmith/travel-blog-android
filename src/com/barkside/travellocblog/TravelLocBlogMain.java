@@ -52,7 +52,7 @@ public class TravelLocBlogMain extends Activity
    public static final String PREFS_NAME = "MyPrefsFile";
    private int mEditItem = 0;
    private int mDeleteItem = -1;
-   private String KML_SUFFIX = ".kml";
+   private static final String KML_SUFFIX = ".kml";
    private String mFileName = "MyFirstTrip" + KML_SUFFIX;
    ListView mBlogList;
 
@@ -152,11 +152,7 @@ public class TravelLocBlogMain extends Activity
       }
       mBlogList.setAdapter(adapter);
       TextView tv2 = (TextView) findViewById(R.id.trip_name);
-      String tripName = mFileName;
-      // Show the name without the suffix, and check that name is at least 1 char
-      int lastSuffix = tripName.lastIndexOf(KML_SUFFIX);
-      if (lastSuffix > 1) tripName = tripName.substring(0, lastSuffix);
-      tv2.setText(tripName);
+      tv2.setText(fileToTripName(mFileName));
    }
 
    /* Because we have the most recent post at the top (standard blog view) */
@@ -638,4 +634,17 @@ public class TravelLocBlogMain extends Activity
          toast.show();
       }
    }
+
+   /**
+    * Utility function to convert file name to trip name
+    */
+   public static String fileToTripName(String fileName)
+   {
+      String name = fileName;
+      // Show the name without the suffix, and check that name is at least 1 char
+      int lastSuffix = name.lastIndexOf(KML_SUFFIX);
+      if (lastSuffix > 1) name = name.substring(0, lastSuffix);
+      return name;
+   }
+   
 }

@@ -58,9 +58,10 @@ What works well for us is to install the Android Dropbox app, register with Drop
 This works from either the desktop Google Maps, or the mobile Google Maps app.  You can then share this map with friends, or add it to your favourite Blogging website such as Blogger.  This way, your family, friends or colleagues can also know what you are up to.\n
 \n
 Later you can Open Trip to load old trips, or select new Trip again to start again.  Your last Trip is also loaded on start-up.  Nothing runs in the background.\n
-\nIf you have problems, please visit our pages at http://code.google.com/p/travel-blog-android/\n
+\nFor more information as well as complete User Guide, please visit our pages at http://code.google.com/p/travel-blog-android/\n
 \nHappy travelling!\n
 \nThe Travel Blog Team</string>
+
     <string name="AboutMsg">A Travel Locations Blog<br/>\n
 <a href="https://code.google.com/p/travel-blog-android/">Source Code</a>\n
 <a href="https://play.google.com/store/apps/details?id=com.barkside.travellocblog">Google Play Store</a>\n
