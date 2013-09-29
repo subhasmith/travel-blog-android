@@ -1,0 +1,72 @@
+Travel Blog for Android - Release Notes
+https://code.google.com/p/travel-blog-android/
+https://play.google.com/store/apps/details?id=com.barkside.travellocblog
+
+Light-weight app to create a list of locations and notes and
+save it in KML format.
+
+Version 2.0.0
+=============
+September 2013
+
+- Now uses Google Play Services API, which takes care of power usage
+  and provides a Fused location provider for updating location info.
+ 
+- Editing location points now possible using visual maps to update the address.
+
+- Single click on blog entry in the main list now shows details of the entry
+  and provides editing capability same as the "Edit Post" context command.
+ 
+- Single click on the location longitude,latitude text will open up the
+  visual location editor.
+
+- The new Location API handles power and accuracy on its own. So we no longer
+  can shut it off by looking at the provider type, instead, we just keep
+  updating the location for a brief amount of time - around 15 seconds or so.
+  After that, the updater is shut off to conserve battery.
+
+- There is no Retry Location fix anymore, to avoid complexity. The new
+  Location Api should give a pretty good location fix fast, and user can
+  always edit the location on a map.
+  If there is demand, will add this back in a later release.
+  
+- Fixed issue#2 kml file format now correctly adds the xmlns attribute to kml
+  tag and not the Document tag.
+
+- Minimum Android SDK Version is now 10 (was 4) so supports Android 2.3.3 and
+  above only (Gingerbread and newer).
+  Google Play Services (to display maps, get location updates using the Fused
+  provider) requires Android 2.2 or higher.
+  See http://developer.android.com/google/play-services/setup.html
+  Also using android-support-v4.jar for android.support.v4.app.Fragment which
+  is needed for SupportMapFragment usage. Necessary to support Android SDK
+  versions older than 12.
+  http://developer.android.com/tools/support-library/setup.html
+
+Version 1.7
+===========
+August 2011
+
+- The first open-sourced version, where adverts are removed.
+  Any further releases will be documented here: http://code.google.com/p/travel-blog-android/
+
+Version 1.6
+===========
+- TimeStamp in kml so animation can be done in Google Earth.
+- Fixed format of date/time so it matches your phone’s settings and locale.
+- Fixed Force Close when viewing map with no points.
+
+Version 1.51
+===========
+- Fixed edit and delete posts.
+- Add space between coods for lines to work on KML export.
+- Cursor in edit boxs are now at the end by default.
+
+Version 1.5
+===========
+- Fixed the name!
+
+Version 1.4
+===========
+- Initial release.
+

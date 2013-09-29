@@ -1,8 +1,7 @@
 package com.barkside.travellocblog;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.StringReader;
+import java.util.Locale;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -22,6 +21,7 @@ import android.view.View;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnClickListener;
 import android.view.View.OnCreateContextMenuListener;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -29,9 +29,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 
+/**
+ * Main activity. Comes here from the launcher.
+ *
+ * Displays a list of blog entries from the last used trip file.
+ */
+
 public class TravelLocBlogMain extends Activity
 {
+   // For logging and debugging purposes
+   private static final String TAG = "TravelLocBlogMain";
+
    private BlogData mBlogData = new BlogData();
+
    public static final int NEW_BLOG_ENTRY = 100;
    public static final int EDIT_BLOG_ENTRY = 111;
    Dialog mNewDialog;
@@ -42,7 +52,8 @@ public class TravelLocBlogMain extends Activity
    public static final String PREFS_NAME = "MyPrefsFile";
    private int mEditItem = 0;
    private int mDeleteItem = -1;
-   private String mFileName = "MyFirstTrip.kml";
+   private String KML_SUFFIX = ".kml";
+   private String mFileName = "MyFirstTrip" + KML_SUFFIX;
    ListView mBlogList;
 
    /* Called when the activity is first created. */
@@ -60,6 +71,20 @@ public class TravelLocBlogMain extends Activity
             newBlogEntry();
          }
       });
+      
+      // When item is clicked, open up the Edit Post activity.
+      // For now, long-click continues to show context menu, will be later
+      // removed, to work like other Android 4.0+ apps. TODO: Make this
+      // class a ListActivity? 
+      mBlogList.setOnItemClickListener(new ListView.OnItemClickListener()
+      {
+         @Override
+         public void onItemClick(AdapterView<?> a, View v, int position, long id)
+         {
+            editBlogEntry(mirrorElement(position));
+         }
+      });
+
 
       /* Attempt to open last used blog file */
       SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
@@ -79,7 +104,7 @@ public class TravelLocBlogMain extends Activity
    /* Called to edit a blog post, by passing extras in a bundle */
    private void editBlogEntry(int index)
    {
-      // Log.d("TRAVEL_DEBUG", "Edit Log Entry "+index);
+      // Log.d(TAG, "Edit Log Entry "+index);
       if ((index >= mBlogData.getMaxBlogElements()) || (index < 0))
       {
          return;
@@ -108,7 +133,7 @@ public class TravelLocBlogMain extends Activity
       b.putString("BLOG_TIMESTAMP", null);
       i.putExtras(b);
       i.setAction("com.barkside.travellocblog.NEW_BLOG_ENTRY");
-      Log.d("TRAVEL_DEBUG", "New Log Entry");
+      Log.d(TAG, "New Log Entry");
       startActivityForResult(i, NEW_BLOG_ENTRY);
    }
 
@@ -123,33 +148,15 @@ public class TravelLocBlogMain extends Activity
       for (int i = 0; i < mBlogData.getMaxBlogElements(); i++)
       {
          BlogElement blog = mBlogData.getBlogElement(mirrorElement(i));
-         String line = "Unknown description";
-         /*
-          * Only display first line of description (invariably will be the
-          * time-stamp
-          */
-         if (blog.description != null)
-         {
-            BufferedReader reader = new BufferedReader(new StringReader(
-                  blog.description));
-
-            try
-            {
-               if ((line = reader.readLine()) == null)
-               {
-                  line = "Unknown description";
-               }
-            }
-            catch (Exception e)
-            {
-               Log.e("Exception", "error occurred while reading log name");
-            }
-         }
-         adapter.addItem(new BlogListData(blog.name, line));
+         adapter.addItem(new BlogListData(blog.name, blog.description));
       }
       mBlogList.setAdapter(adapter);
       TextView tv2 = (TextView) findViewById(R.id.trip_name);
-      tv2.setText("Trip: " + mFileName);
+      String tripName = mFileName;
+      // Show the name without the suffix, and check that name is at least 1 char
+      int lastSuffix = tripName.lastIndexOf(KML_SUFFIX);
+      if (lastSuffix > 1) tripName = tripName.substring(0, lastSuffix);
+      tv2.setText(tripName);
    }
 
    /* Because we have the most recent post at the top (standard blog view) */
@@ -164,11 +171,13 @@ public class TravelLocBlogMain extends Activity
    void initList()
    {
       /*
-       * // dump it all out for(int i = 0; i < mBlogData.getMaxBlogElements();
-       * i++) { BlogElement blog = mBlogData.getBlogElement(i);
-       * Log.d("TRAVEL_DEBUG", "Name: "+ blog.name + " Descr: "+
-       * blog.description + " Loc: "+ blog.location); }
+      // DEBUG: dump it all out
+      for(int i = 0; i < mBlogData.getMaxBlogElements(); ++i) {
+         BlogElement blog = mBlogData.getBlogElement(i);
+         Log.d(TAG, "Name: "+ blog.name + " Descr: "+ blog.description + " Loc: "+ blog.location);
+      }
        */
+      
       refreshList();
 
       mBlogList.setDividerHeight(3);
@@ -236,6 +245,43 @@ public class TravelLocBlogMain extends Activity
          }
          mDeleteItem = -1;
          refreshList();
+      }
+   }
+   /**
+    * This method is called when the user clicks a note in the displayed list.
+    *
+    * This method handles incoming actions of either PICK (get data from the provider) or
+    * GET_CONTENT (get or create data). If the incoming action is EDIT, this method sends a
+    * new Intent to start NoteEditor.
+    * @param l The ListView that contains the clicked item
+    * @param v The View of the individual item
+    * @param position The position of v in the displayed list
+    * @param id The row ID of the clicked item
+    */
+   // @Override LATER TODO make this a ListActivity
+   protected void onListItemClick(ListView l, View v, int position, long id)
+   {
+
+      // Constructs a new URI from the incoming URI and the row ID
+      // Uri uri = ContentUris.withAppendedId(getIntent().getData(), id);
+
+      // Gets the action from the incoming Intent
+      String action = getIntent().getAction();
+
+      // Handles requests for note data
+      if (Intent.ACTION_PICK.equals(action) || Intent.ACTION_GET_CONTENT.equals(action))
+      {
+
+         // Sets the result to return to the component that called this Activity. The
+         // result contains the new URI
+         //setResult(RESULT_OK, new Intent().setData(uri));
+      }
+      else
+      {
+
+         // Sends out an Intent to start an Activity that can handle ACTION_EDIT. The
+         // Intent's data is the note ID URI. The effect is to call NoteEdit.
+         //startActivity(new Intent(Intent.ACTION_EDIT, uri));
       }
    }
 
@@ -332,6 +378,9 @@ public class TravelLocBlogMain extends Activity
          case R.id.trip_info:
             showTripInfo();
             return true;
+         case R.id.about:
+            startActivity(new Intent(this, AboutActivity.class));
+            return true;
          default:
             return super.onMenuItemSelected(featureId, item);
       }
@@ -346,10 +395,10 @@ public class TravelLocBlogMain extends Activity
       String dist = "";
       float fdistkm = mBlogData.getTotalDistance();
       fdistkm /= 1000.0F;
-      dist = String.format("%.2f km", fdistkm);
+      dist = String.format(Locale.US, "%.2f km", fdistkm);
       str = str + "\nTotal Distance: " + dist;
       fdistkm *= 0.6213711;
-      dist = String.format("%.2f miles", fdistkm);
+      dist = String.format(Locale.US, "%.2f miles", fdistkm);
       str = str + " or " + dist;
       builder.setMessage(str);
       builder.setTitle(this.getString(R.string.menu_info));
@@ -384,7 +433,7 @@ public class TravelLocBlogMain extends Activity
       }
       catch (Exception e)
       {
-         Log.e("Exception", "error occurred while sending file");
+         Log.e(TAG, "error occurred while sending file");
          return;
       }
 
@@ -399,7 +448,7 @@ public class TravelLocBlogMain extends Activity
       }
       catch (Exception e)
       {
-         Log.e("Exception", "error occurred while reading file list");
+         Log.e(TAG, "error occurred while reading file list");
          return;
       }
 
@@ -435,7 +484,7 @@ public class TravelLocBlogMain extends Activity
 
    public void openTripOnClick(String file)
    {
-      // Log.d("TRAVEL_DEBUG", "open file: " + file);
+      // Log.d(TAG, "open file: " + file);
       openTripFile(file);
    }
 
@@ -474,7 +523,7 @@ public class TravelLocBlogMain extends Activity
    {
       EditText text = (EditText) mNewDialog.findViewById(R.id.file_name);
       String str = text.getText().toString().trim();
-      // Log.d("TRAVEL_DEBUG", "new file: " + str);
+      // Log.d(TAG, "new file: " + str);
       if (str.length() == 0)
       {
          Toast toast = Toast.makeText(this, "Invalid filename",
@@ -490,7 +539,7 @@ public class TravelLocBlogMain extends Activity
          return;
       }
       File newFile = new File(Environment.getExternalStorageDirectory()
-            + TRIP_PATH + "/" + str + ".kml");
+            + TRIP_PATH + "/" + str + KML_SUFFIX);
       if (newFile.exists() == true)
       {
          Toast toast = Toast.makeText(this, "File already exists)",
@@ -499,7 +548,7 @@ public class TravelLocBlogMain extends Activity
          return;
       }
       mNewDialog.cancel();
-      if (mBlogData.newBlog(str + ".kml") == false)
+      if (mBlogData.newBlog(str + KML_SUFFIX) == false)
       {
          Toast toast = Toast.makeText(this,
                "Failed to create new file (SD card problem?)",
@@ -507,7 +556,7 @@ public class TravelLocBlogMain extends Activity
          toast.show();
          return;
       }
-      mFileName = str + ".kml";
+      mFileName = str + KML_SUFFIX;
 
       setDefaultTrip(mFileName);
 
@@ -575,7 +624,7 @@ public class TravelLocBlogMain extends Activity
    {
       if (mBlogData.getMaxBlogElements() > 0)
       {
-         // Log.d("TRAVEL_DEBUG", "Map Trip");
+         // Log.d(TAG, "Map Trip");
          Intent i = new Intent(this, TripMapView.class);
          Bundle b = new Bundle();
          b.putString("TRIP", mFileName);

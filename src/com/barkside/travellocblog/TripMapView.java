@@ -5,6 +5,7 @@ import java.util.List;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.LinearLayout;
 
 import com.google.android.maps.GeoPoint;
@@ -14,6 +15,10 @@ import com.google.android.maps.MapView;
 import com.google.android.maps.Overlay;
 import com.google.android.maps.OverlayItem;
 
+/**
+ * Activity to display all the blog entry locations on a map.
+ */
+
 public class TripMapView extends MapActivity
 {
    LinearLayout linearLayout;
@@ -21,6 +26,10 @@ public class TripMapView extends MapActivity
    List<Overlay> mapOverlays;
    Drawable drawable;
    MapItemizedOverlay itemizedOverlay;
+
+   // For logging and debugging purposes
+   private static final String TAG = "TripMapView";
+
    
    @Override
    protected void onCreate(Bundle arg0)
@@ -40,7 +49,7 @@ public class TripMapView extends MapActivity
       blogData.openBlog(filename);
        
       /* use a simple blue pointer */
-      drawable = this.getResources().getDrawable(R.drawable.blue_dot);
+      drawable = this.getResources().getDrawable(R.drawable.marker_blue_dot);
       
       /* MapItemizedOverlay is a class that draws lines between points, and 
        * has the onTap() onClick function for each point to bring up a pop-up dialog 
@@ -70,6 +79,7 @@ public class TripMapView extends MapActivity
             temp = blog.location.split(",");
             if (temp.length < 2)
             {
+               Log.d(TAG, "skipping invalid location string " + blog.location);
                continue;
             }
             lon = Float.parseFloat(temp[0]);
@@ -107,5 +117,5 @@ public class TripMapView extends MapActivity
    protected boolean isRouteDisplayed()
    {    
       return false;
-      }
+   }
 }

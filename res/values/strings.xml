@@ -1,36 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-<string name="app_name">Travel Blog</string>
-<string name="name">Name:</string>
-<string name="description">Description:</string>
-<string name="location">Location Status:</string>
-<string name="location_store">Reapply Location</string>
-<string name="save">Save</string>
-<string name="cancel">Cancel</string>
-<string name="date_store">Reapply Timestamp</string>
-<string name="location_again">Retry Location Fix</string>
-<string name="new_post">New Post</string>
-<string name="default_trip">MyFirstTrip.kml</string>
-<string name="menu_open">Open Trip</string>
-<string name="menu_new">New Trip</string>
-<string name="menu_info">Trip Info</string>
-<string name="menu_help">Help</string>
-<string name="new_trip_dialog_text">Please enter your chosen filename for your new trip:</string>
-<string name="OK">OK</string>
-<string name="Yes">Yes</string>
-<string name="HelpMsg"> is an open-source manual travel logger where you can log your location, with a name and description. As it is manual, it does not waste your device\'s battery life.  It also does not require internet access.\n
-\nTo use, first start with New Trip from the menu.  This will be the KML filename of the blog (located in /TravelBlog/ on your SD card). Now when you want to log your location, just click on New Post.
-This brings up a new page where you can type a name and description.  While you are typing, it finds your location by GPS (if enabled and available), or by WiFi / Cell-id (network).  Once GPS location has been found, it will auto-turn off GPS to save battery life.  If you are unhappy with the GPS fix, you can ask it to retry a location fix.\n
-\nNow click Save, or Cancel to cancel.  When you save, the KML file automatically adds a line from your previous location. You can also edit or delete a previous post by long-clicking on a post. When editing you a given the opportunity to edit the name and description, and optionally to reapply the location fix to your post.\n
-\nWhenever you choose, you can view your trip on a Google map on your device by choosing Map Trip from the menu.  You can copy the KML blog file manually to do what you choose with it, or you can send it via email or whereever your device can send it to by choosing Send Trip from the menu.\n
-\nWhat works well for us is to install the Android Dropbox app, register with Dropbox, and then Send the KML file to your Dropbox public folder.  In Dropbox you can get a link to your file which you can enter into the Search Maps box in Google Maps.
+
+    <!-- Application identifiers -->
+    <string name="app_name">Travel Blog</string>
+    <string name="app_description">        Saves blog entries with location and notes.</string>
+
+    <!-- Longitude, Latitude format (order is same as KML coordinates element) -->
+    <string name="longitude_latitude_format">%1$.4f, %2$.4f</string>
+    <string name="latitude_longitude_format">%1$.4f, %2$.4f</string>
+    <string name="accuracy_format">%1$.1f m</string>
+
+    <!-- Menu title -->
+
+    <!-- Labels -->
+    <string name="name">Name:</string>
+    <string name="description">Description:</string>
+    <string name="location">Location Status:</string>
+    <string name="location_store">Reapply Location</string>
+    <string name="location_edit">Show on map</string>
+    <string name="save">Save</string>
+    <string name="save_location">Use Location</string>
+    <string name="cancel">Cancel</string>
+    <string name="date_store">Reapply Timestamp</string>
+    <string name="location_again">Retry Location Fix</string>
+    <string name="new_post">New Post</string>
+    <string name="default_trip">MyFirstTrip.kml</string>
+    <string name="menu_open">Open Trip</string>
+    <string name="menu_new">New Trip</string>
+    <string name="menu_info">Trip Info</string>
+    <string name="menu_help">Help</string>
+    <string name="menu_about">About</string>
+    <string name="new_trip_dialog_text">Please enter new trip filename:</string>
+    <string name="OK">OK</string>
+    <string name="Yes">Yes</string>
+    <string name="done">Done</string>
+    <string name="file_suffix">.kml</string>
+    <string name="file_name_hint">Filename</string>
+    <string name="menu_send">Send Trip</string>
+    <string name="menu_map">Map Trip</string>
+    <string name="are_you_sure">Are you sure?</string>
+    <string name="are_you_sure_msg">Are you sure you want to delete this post?</string>
+    <string name="map_not_ready">Map is not fully loaded yet</string>
+    <string name="about_name_version_format">%1$s (Version %2$s)</string>
+    <string name="about_notices_label">COPYRIGHT NOTICES</string>
+
+    <!-- Messages -->
+    <string name="HelpMsg">Travel Blog is an open-source location and notes. It tries to minimize battery use.  It also does not require internet access.\n
+\n
+To use, first start with New Trip from the menu.  This will be the KML filename of the blog (located in /TravelBlog/ on your SD card). Now when you want to log your location, just click on New Post.
+This brings up a new page where you can type a name and description.  While you are typing, it finds your location by GPS (if enabled and available), or by WiFi / Cell-id (network).  If you are unhappy with the location, you can later edit the location on a map.\n
+\n
+Now click Save, or Cancel to cancel. You can edit a post by clicking on it, and you can select delete post by long-clicking on a post. When editing you a given the opportunity to edit the name and description, and optionally to edit the location of your post by clicking on the location coordinates.\n
+\n
+Whenever you choose, you can view your trip on a Google map on your device by choosing Map Trip from the menu.  You can copy the KML blog file manually to do what you choose with it, or you can send it via email or wherever your device can send it to by choosing Send Trip from the menu.\n
+\n
+What works well for us is to install the Android Dropbox app, register with Dropbox, and then Send the KML file to your Dropbox public folder.  In Dropbox you can get a link to your file which you can enter into the Search Maps box in Google Maps.
 This works from either the desktop Google Maps, or the mobile Google Maps app.  You can then share this map with friends, or add it to your favourite Blogging website such as Blogger.  This way, your family, friends or colleagues can also know what you are up to.\n
-\nLater you can Open Trip to load old trips, or select new Trip again to start again.  Your last Trip is also loaded on start-up.  Nothing runs in the background.\n
+\n
+Later you can Open Trip to load old trips, or select new Trip again to start again.  Your last Trip is also loaded on start-up.  Nothing runs in the background.\n
 \nIf you have problems, please visit our pages at http://code.google.com/p/travel-blog-android/\n
 \nHappy travelling!\n
 \nThe Travel Blog Team</string>
-<string name="menu_send">Send Trip</string>
-<string name="menu_map">Map Trip</string>
-<string name="are_you_sure">Are you sure?</string>
-<string name="are_you_sure_msg">Are you sure you want to delete this post?</string>
+    <string name="AboutMsg">A Travel Locations Blog<br/>\n
+<a href="https://code.google.com/p/travel-blog-android/">Source Code</a>\n
+<a href="https://play.google.com/store/apps/details?id=com.barkside.travellocblog">Google Play Store</a>\n
+<a href="https://groups.google.com/forum/travel-blog-android/">Mailing List</a>\n
+Copyright 2011 Barkside Apps</string>
+
 </resources>

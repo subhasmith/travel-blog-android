@@ -29,6 +29,9 @@ public class BlogData
    private String mFile = null;
    private static final String mPath = TravelLocBlogMain.TRIP_PATH;
 
+   // For logging and debugging purposes
+   private static final String TAG = "BlogData";
+
    /*
     * this function closes anything that is already open, then opens new file,
     * or creates
@@ -42,7 +45,7 @@ public class BlogData
    {
       if (filename != null)
       {
-         // Log.d("TRAVEL_DEBUG", "Opening file: "+ filename);
+         // Log.d(TAG, "Opening file: "+ filename);
          File newFile = new File(Environment.getExternalStorageDirectory()
                + mPath);
          try
@@ -51,7 +54,7 @@ public class BlogData
          }
          catch (Exception e)
          {
-
+            Log.d(TAG, "Failed to open file: " + filename);
          }
       }
 
@@ -148,8 +151,8 @@ public class BlogData
     * We also ignore the lines at the end of the file - these will be recreated when
     * we save anyway.  Example KML:
       <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
-      <kml>
-        <Document xmlns="http://www.opengis.net/kml/2.2">
+      <kml xmlns="http://www.opengis.net/kml/2.2">
+        <Document>
           <Placemark>
             <name>My First TravelBlog Post</name>
             <description>01/06/2011 21:16
@@ -294,7 +297,7 @@ public class BlogData
             float results[] = { 0, 0, 0, 0, 0 };
             Location.distanceBetween(previousLat, previousLon, lat, lon, results);
             total += results[0];
-            // Log.d("TRAVEL_DEBUG", "Distance: "+ Math.round(results[0]) +
+            // Log.d(TAG, "Distance: "+ Math.round(results[0]) +
             // "m");
          }
 
@@ -348,9 +351,9 @@ public class BlogData
                "http://xmlpull.org/v1/doc/features.html#indent-output", true);
          // start a tag called "root"
          serializer.startTag(null, "kml");
-         serializer.startTag(null, "Document");
          // set an attribute called "xmlns" with a "http:..." for <kml>
          serializer.attribute(null, "xmlns", "http://www.opengis.net/kml/2.2");
+         serializer.startTag(null, "Document");
          /* Perhaps use for icon in future?:
           * <Style id="desired_id"> <IconStyle> <Icon>
           * <href>http://www.yourwebsite.com/your_preferred_icon.png</href>

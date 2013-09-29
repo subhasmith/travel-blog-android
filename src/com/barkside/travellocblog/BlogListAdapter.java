@@ -13,6 +13,9 @@ import android.widget.TextView;
 public class BlogListAdapter extends BaseAdapter
 {
 
+   // For logging and debugging purposes
+   // private static final String TAG = "BlogListAdapter";
+
    /** Remember our context so we can use it when constructing views. */
    private Context mContext;
 
@@ -79,10 +82,20 @@ public class BlogListAdapter extends BaseAdapter
          convertView = inflater.inflate(R.layout.blog_list, parent, false);
       }
 
-      ((TextView) convertView.findViewById(R.id.titleText)).setText(mItems.get(
-            position).getNameText());
-      ((TextView) convertView.findViewById(R.id.dexcriptionText))
-            .setText(mItems.get(position).getDetailText());
+      /*
+       * For both name and description, we want to display as much as will fit on one line.
+       * If the text is actually multiple line, we combine the lines into a single line.
+       * And we use TextView to truncate it as needed, and show ellipses (...) at the point
+       * of truncation.
+       * Ran into a ellipsize bug in TextView (putting ... in middle and still showing words
+       * after that and not truncating), so now replace all cr lf chars from
+       * name and description. Now works better. The ... char is shown at end of TextView line.
+       */
+      String text = mItems.get(position).getNameText().trim().replaceAll("\\r|\\n", " ");
+      ((TextView) convertView.findViewById(R.id.titleText)).setText(text);
+      
+      text = mItems.get(position).getDetailText().trim().replaceAll("\\r|\\n", " ");
+      ((TextView) convertView.findViewById(R.id.dexcriptionText)).setText(text);
       return convertView;
    }
 

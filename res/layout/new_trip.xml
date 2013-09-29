@@ -4,6 +4,10 @@
 	android:orientation="vertical"
 	android:layout_width="fill_parent" 
 	android:layout_height="fill_parent"
+        android:paddingBottom="@dimen/activity_vertical_margin"
+        android:paddingLeft="@dimen/activity_horizontal_margin"
+        android:paddingRight="@dimen/activity_horizontal_margin"
+        android:paddingTop="@dimen/activity_vertical_margin"
 	android:padding="10dp">
 	<TextView
 		android:layout_width="wrap_content"
@@ -18,8 +22,8 @@
 		<EditText android:id="@+id/file_name"
 			android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
-			android:editable="true"
 			android:scrollHorizontally="true"
+			android:hint="@string/file_name_hint"
 			android:width="200sp"
 			android:maxLines="1"
 			android:gravity="center_vertical">
@@ -28,19 +32,11 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content" 
 			android:textColor="#FFF" 
-			android:text=".kml"/>
+			android:text="@string/file_suffix"/>
 	</LinearLayout>
 	<LinearLayout
 				android:layout_width="fill_parent"
 				android:layout_height="wrap_content">			
-			<Button 
-			    android:id="@+id/new_button"
-				android:text="@string/OK"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_weight="1"
-				android:gravity="center">
-			</Button>	
 			<Button 
 				android:id="@+id/cancel_button"
 				android:text="@string/cancel"
@@ -49,6 +45,14 @@
 				android:layout_weight="1"
 				android:gravity="center">
 			</Button>	
-			
+				<Button 
+			    android:id="@+id/new_button"
+				android:text="@string/OK"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:gravity="center">
+			</Button>	
+					
 			</LinearLayout>	
 </LinearLayout>

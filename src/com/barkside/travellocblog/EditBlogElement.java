@@ -1,391 +1,332 @@
 package com.barkside.travellocblog;
 
-
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
-import android.app.Activity;
+import com.google.android.gms.maps.model.LatLng;
+
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.Handler;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class EditBlogElement extends Activity
+/**
+ * Activity to edit a note (a blog entry) that contains title, description,
+ * and longitude/latitude location.
+ *
+ * Uses the abstract class LocationUpdates for getting the current location.
+ *
+ */
+public class EditBlogElement extends LocationUpdates
 {
+   // Constants
+   private static final String TAG = "EditBlogElement";
+   
+   // Amount of time to listen to location updates, in seconds
+   private static final int LOC_UPDATE_DURATION = 15;
+   
    private Boolean isNewBlog = false;
-   private LocationListener mLocationListener = null;
-   private LocationManager mLocationManager = null;
+   
+   // We have two sources of current position. One comes from the phone location listener,
+   // and it returns a Location object. The second comes from editing a saved note (blog entry)
+   // or from the EditLocation activity, both of which return LatLng data.
    private Location mBestLocation = null;
-   private Boolean mCancelTimer = false;
-   private Boolean mIsLocationSaved = false;
-   private String mOldLocation = null;
+   private LatLng mNewLatLng = null;
+   
+   private String mNoteName = null;
+   
+   // Previously saved values, if editing an existing note entry.
+   private String mOldLngLat = null;
    private String mOldTime = null;
-   final Handler viewUpdateHandler = new Handler();
-   Thread mWaitAndCheckGPS = null;
-   // Create runnable for posting
-   final Runnable mUpdateLocation = new Runnable() {
-     public void run() {
-        if(mCancelTimer == false)
-        {
-           Log.d("TRAVEL_DEBUG", "Update location view"); 
-           if(mLocationManager != null)
-              mLocationManager.removeUpdates(mLocationListener);
-           Button but = (Button) findViewById(R.id.loc_again_button);
-           but.setVisibility(View.VISIBLE);      
-           mCancelTimer = true;
-        }
-     }
-   };      
+   
+   private final int EDIT_LOCATION_REQUEST = 100;
+   
+   /**
+    * Return the layout to inflate, to the abstract base class.
+    *
+    * @return a layout Id.
+    */
+   @Override
+   protected int getLayoutResourceId()
+   {
+      return R.layout.edit_blog;
+   }
+
+   /**
+    * Return a progress indicator to the abstract base class.
+    * Not using any progress indicator.
+    *
+    * @return the ProgressBar to update, or null if none.
+    */
+   @Override
+   protected ProgressBar getProgressBar()
+   {
+      return null;
+   }
+
    @Override
    public void onCreate(Bundle savedInstanceState)
    {
       super.onCreate(savedInstanceState);
-      setContentView(R.layout.edit_blog);
+      // setContentView handled by base class, using getLayoutResourceId()
 
       Intent intent = getIntent();
       String action = intent.getAction();
       if (action.equals("com.barkside.travellocblog.NEW_BLOG_ENTRY"))
       {
-         // Requested to edit: set that state, and the data being edited.
          isNewBlog = true;
-         EditText tv = (EditText) findViewById(R.id.edit_name);
-         tv = (EditText) findViewById(R.id.edit_description);
+         EditText tv = (EditText) findViewById(R.id.edit_description);
 
-         Date dateNow = new Date(); 
-         java.text.DateFormat df = DateFormat.getDateFormat(this);
-         String myString = df.format(dateNow);
-         df = DateFormat.getTimeFormat(this);
-         myString += " "+df.format(dateNow);
-         CharSequence charSeq;
-         DateFormat df2 = new DateFormat();
-         charSeq = df2.format("yyyy-MM-ddThh:mm:ssZ",dateNow.getTime());
-                 
+         Date dateNow = new Date();
+         // User-friendly date string, in local timezone
+         java.text.DateFormat df = java.text.DateFormat.getDateTimeInstance(
+               java.text.DateFormat.LONG, // dateStyle
+               java.text.DateFormat.SHORT, // timeStyle
+               Locale.US);
+         String dateNowString = df.format(dateNow);
+         // KML timestamp, needs to be in UTC
+         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZ", Locale.US);
+         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+         CharSequence charSeq = sdf.format(dateNow);
+
          mOldTime = charSeq.toString();
-         tv.setText(myString + "\n");           
+         tv.setText(dateNowString + "\n");
          tv.setSelection(tv.getText().length());
+         
+         TextView tvl = (TextView) findViewById(R.id.location);
+         tvl.setText("Finding Location...");
       }
       else if (action.equals("com.barkside.travellocblog.EDIT_BLOG_ENTRY"))
       {
+         // Requested to edit: set that state, and the data being edited.
          isNewBlog = false;
          Bundle extras = intent.getExtras();
-         String name = extras.getString("BLOG_NAME");
+         mNoteName = extras.getString("BLOG_NAME");
          String descr = extras.getString("BLOG_DESCRIPTION");
          mOldTime = extras.getString("BLOG_TIMESTAMP");
-         mOldLocation = extras.getString("BLOG_LOCATION");
-         EditText tv = (EditText) findViewById(R.id.edit_name);
-         tv.setText(name);
+         mOldLngLat = extras.getString("BLOG_LOCATION");
+         mNewLatLng = stringToLatLng(mOldLngLat);
+
+         EditText tv = (EditText) findViewById(R.id.show_name);
+         tv.setText(mNoteName);
          tv.setSelection(tv.getText().length());
          tv = (EditText) findViewById(R.id.edit_description);
          tv.setText(descr);
          tv.setSelection(tv.getText().length());
 
-         Button but2 = (Button) findViewById(R.id.loc_button);
-         but2.setVisibility(View.VISIBLE);          
+         TextView tvl = (TextView) findViewById(R.id.location);
+         String lnglat = getLngLat(this, mNewLatLng);
+         tvl.setText(lnglat);
       }
-      TextView tv = (TextView) findViewById(R.id.location);
-      tv.setText("Finding Location...");
-      this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN); 
- 
       
-      startLocationInit();
+      this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+      
+      // Turn on a timer event to fire after a while, to turn off any updates. Can't do this
+      // in a onStart or onResume because those get called any time this activity is shown such
+      // as when we come back to this activity after completion of EditLocation activity.
+      // Since we need to start this timer only after an onConnected event, will need to create
+      // a mNeedLocationUpdates boolean in here and set it off when updates are to be turned off.
+      // All that seems unnecessary, so just a simple call below works fine.
+      if (isNewBlog) {
+         super.enableLocationUpdates(LOC_UPDATE_DURATION);
+      }
    }
    
-   private void updateLocation(Location loc)
+   /**
+    * Update the note entry to use the given location.
+    * It is assumed that the given loc is to be considered the best location
+    * from this time on.
+    *
+    * @param loc A Location object containing the current location.
+    *        null is allowed - it means we don't have a Location object.
+    * @param latlng A LatLng object containing the current position.
+    *        Only used if loc is null.
+    * @return void
+    */
+   private void updateBestLocation(Location loc, LatLng latlng)
    {
-      if(loc == null)
+      if(loc == null && latlng == null) {
+         Log.w(TAG, "updateBestLocation got both null args");
          return;
-      mBestLocation = loc;
+      }
+      
+      mBestLocation = loc; // may be null
+      if (mBestLocation != null) {
+         Log.d(TAG, "updateBestLocation got new mBestLocation");
+         mNewLatLng = new LatLng(mBestLocation.getLatitude(), mBestLocation.getLongitude());
+      } else {
+         mNewLatLng = latlng;
+      }
+      
       TextView tv = (TextView) findViewById(R.id.location);
-      String[] temp;
-      String lat = String.format("%.6f", loc.getLatitude());
-      tv.setText("Latitude: " +lat);
-      if((isNewBlog== false) && (mIsLocationSaved == false))
-      {
-         temp = mOldLocation.split(",");
-         if (temp.length == 3)
-         {
-            int len = temp[1].length();
-            if(len > 8) len = 8;
-            tv.append(" (Previous: "+temp[1].substring(0,len)+")");
-         }
+      Context context = getApplicationContext();
+      String lnglat = getLngLat(context, mNewLatLng);
+      
+      if (mBestLocation != null) {
+         // We have a Location object and can display Accuracy value
+         String accuracy = getAccuracy(context, loc);
+         lnglat += " Accuracy: " + accuracy;
       }
-         
-      String lon = String.format("%.6f", loc.getLongitude());
-
-      tv.append("\nLongitude: " +lon);
-      if((isNewBlog== false) && (mIsLocationSaved == false))
-      {
-         temp = mOldLocation.split(",");
-         if (temp.length == 3)
-         {         
-            int len = temp[0].length();
-            if(len > 8) len = 8;
-            tv.append(" (Previous: "+temp[0].substring(0,len)+")");
-         }
-      }      
-      tv.append("\nAccuracy: " +loc.getAccuracy()+"m\n");
-      tv.append("Provider: " +loc.getProvider().toUpperCase()+"\n");
-
-      java.text.DateFormat df = DateFormat.getDateFormat(this);
-      String myString = df.format(loc.getTime());
-      df = DateFormat.getTimeFormat(this);
-      myString += " "+df.format(loc.getTime());
-      tv.append("Location time: " +myString + "\n");
-      if(isNewBlog == true)
-      {
-         tv.append("Saved status: Auto\n");
-      }
-      else if(mIsLocationSaved == false)
-      {
-         tv.append("Saved status: Previous\n");
-      }  
-      else
-      {
-         tv.append("Apply status: Applied\n");
-      }  
-         
-      //GpsStatus gps = mLocationManager.getGpsStatus(null);
-      //gps.
+      
+      tv.setText(lnglat);
    }
-   /* to save blog */
-   public void saveBlogEdit(View view) {
-      String location;
-      if((isNewBlog == true)||(mIsLocationSaved == true))
+
+   /*
+    * User has clicked on the location, so we start a new activity to edit it on a map. 
+    */
+   public void editLocation(View view)
+   {
+      if (mNewLatLng == null)
       {
-         if(mBestLocation == null)
-         {
-            Toast toast = Toast.makeText(this, "Failed: no location", Toast.LENGTH_SHORT);
-            toast.show();
-            return;
-         }
-         location = mBestLocation.getLongitude() + "," + 
-            mBestLocation.getLatitude() + ",0";         
-      }
-      else
-      {
-         if(mOldLocation == null)
-         {
-            Toast toast = Toast.makeText(this, "Failed: no location", Toast.LENGTH_SHORT);
-            toast.show();
-            return;
-         }         
-         location = mOldLocation;
-      }
-         
-      Intent intent = new Intent();
-      Bundle extras = new Bundle();
-      EditText et = (EditText) findViewById(R.id.edit_name);
-      String str = et.getText().toString().trim();
-      if(str.length() == 0)
-      {
-         Toast toast = Toast.makeText(this, "Failed: enter a valid name", Toast.LENGTH_SHORT);
-         toast.show();
+         Log.d(TAG, "start editLocation activity: mNewLatLng is null! ");
          return;
       }
-      Log.d("TRAVEL_DEBUG", "Edit done (save) for " + str);
-      extras.putString("BLOG_NAME", str);
-      et = (EditText) findViewById(R.id.edit_description);
-      str = et.getText().toString();      
-      extras.putString("BLOG_DESCRIPTION", str);
-      extras.putString("BLOG_LOCATION", location);
-      extras.putString("BLOG_TIMESTAMP", mOldTime);
-      intent.putExtras(extras);
-      cancelLocationUpdates();
-      setResult(RESULT_OK, intent);
-      finish();
-   }
-   public void cancelBlogEdit(View view) {
-      cancelLocationUpdates();
-      setResult(RESULT_CANCELED);
-      finish();
+      Log.d(TAG, "start editLocation activity");
+
+      // Since we going to manually edit the location, turn off the location updates.
+      stopPeriodicUpdates();
+      
+      Intent i = new Intent(this, EditLocation.class);
+      Bundle b = new Bundle();
+      b.putString("BLOG_NAME", mNoteName);
+      b.putString("BLOG_TIMESTAMP", mOldTime);
+      b.putParcelable("BLOG_LATLNG", mNewLatLng);
+      i.putExtras(b);
+      i.setAction(Intent.ACTION_EDIT);
+      startActivityForResult(i, EDIT_LOCATION_REQUEST);
    }
    
-   public void applyLocation(View view) {
-      mIsLocationSaved = true;
-      Button but = (Button) findViewById(R.id.loc_button);
-      but.setVisibility(View.GONE);        
-      updateLocation(mBestLocation);
-      Log.d("TRAVEL_DEBUG", "applyLocation");
-   }
-   
-   public void applyDate(View view) {
-      Log.d("TRAVEL_DEBUG", "applyDate");
-   }   
-   
-   public void restartLocation(View view) {
-      Button but = (Button) findViewById(R.id.loc_again_button);
-      but.setVisibility(View.GONE); 
-      startLocationUpdates();
-      Log.d("TRAVEL_DEBUG", "restartLocation");
-   }
-   public void cancelLocationUpdates()
+   /**
+    * All done, and save the note, or cancel the edit.
+    *
+    * @param view The button object that was clicked
+    */
+   public void onSaveOrCancel(View view)
    {
-      // Remove the listener you previously added
-      if(mLocationManager != null)
-         mLocationManager.removeUpdates(mLocationListener);
-      Log.d("TRAVEL_DEBUG", "cancelLocationUpdates");
-      mCancelTimer = true;
+      switch (view.getId()) {
+      case R.id.save_button:
+         String location = "";
+         // Always save using the NewLatLng, should always be available
+         if (mNewLatLng != null)
+         {
+            location = mNewLatLng.longitude + "," + mNewLatLng.latitude + ",0";
+         }
+         else
+         {
+            Log.w(TAG, "mNewLatLng is null when saving blog!");
+         }
+
+         Intent intent = new Intent();
+         Bundle extras = new Bundle();
+         EditText et = (EditText) findViewById(R.id.show_name);
+         String str = et.getText().toString().trim();
+         if(str.length() == 0)
+         {
+            Toast toast = Toast.makeText(this, "Failed: enter a valid name", Toast.LENGTH_SHORT);
+            toast.show();
+            return;
+         }
+         Log.d(TAG, "Edit done (save) for " + str + " location " + location);
+         extras.putString("BLOG_NAME", str);
+         et = (EditText) findViewById(R.id.edit_description);
+         str = et.getText().toString();      
+         extras.putString("BLOG_DESCRIPTION", str);
+         extras.putString("BLOG_LOCATION", location);
+         extras.putString("BLOG_TIMESTAMP", mOldTime);
+         intent.putExtras(extras);
+         setResult(RESULT_OK, intent);
+         break;
+         
+      case R.id.cancel_button:
+         setResult(RESULT_CANCELED);
+         break;
+      }
+      
+      // Since we going to exit, turn off the location updates.
+      stopPeriodicUpdates();
+      
+      finish();
    }
    
    @Override
-   protected void onStop()
+   public void onConnected(Bundle bundle)
    {
+      super.onConnected(bundle);
+      Log.d(TAG, "onConnected");
+   }
+   
+   @Override
+   public void onStart()
+   {
+      Log.d(TAG, "onStart");
+      super.onStart();
+   }
+   
+   @Override
+   public void onStop()
+   {
+      Log.d(TAG, "onStop");
       super.onStop();
-      cancelLocationUpdates();
-      Button but = (Button) findViewById(R.id.loc_again_button);
-      //Log.d("TRAVEL_DEBUG", "on Stop");
-      but.setVisibility(View.VISIBLE);     
-  
-   }
-
-   protected void startLocationInit()
-   {
-     // Fire off a thread to do some work that we shouldn't do directly in the UI thread
-     // Acquire a reference to the system Location Manager
-
-      mLocationManager = (LocationManager) this
-            .getSystemService(Context.LOCATION_SERVICE);
-      
-      Location lastKnownLocation = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-      updateLocation(lastKnownLocation);
-      try
-      {
-         //if(mIsTimerCancelled == false)
-         //{
-         //   mTimer.schedule(disableGpsLock, 15000L);
-         //}
-         // Define a listener that responds to location updates
-         mLocationListener = new LocationListener()
-         {
-            public void onLocationChanged(Location location)
-            {
-               // Called when a new location is found by the network location
-               // provider.
-               //Log.d("TRAVEL_DEBUG", "location "+ location.getLatitude()+" "+ location.getLongitude()
-               //      +" ac "+location.getAccuracy()+" pro "+location.getProvider());
-               if(isBetterLocation(location) == true)
-               {
-                  updateLocation(location);
-               }
-               if(location.getProvider().equals(LocationManager.GPS_PROVIDER) == true)
-               {
-                  Log.d("TRAVEL_DEBUG", "disable GPS");
-                  cancelLocationUpdates();
-               }               
-            }
-   
-            public void onStatusChanged(String provider, int status, Bundle extras)
-            {
-               //Log.d("TRAVEL_DEBUG", "onStatusChanged");
-            }
-   
-            public void onProviderEnabled(String provider)
-            {
-               //Log.d("TRAVEL_DEBUG", "onProviderDisabled");
-            }
-   
-            public void onProviderDisabled(String provider)
-            {
-               //Log.d("TRAVEL_DEBUG", "onProviderDisabled");
-            }
-         };// Register the listener with the Location Manager to receive location
-           // updates
-         startLocationUpdates();
-      }
-      catch (Exception e)
-      {
-         Log.e("TRAVEL_DEBUG", "Find location error", e);
-      }
-      
-      Log.d("TRAVEL_DEBUG", "Update location thread");
-      
-      mCancelTimer = false;
-      if(mWaitAndCheckGPS != null)
-         return;
-      mWaitAndCheckGPS = new Thread()
-      {
-        public void run()
-        {
-           //Log.d(MoodData.MOOD_TAG, "disableGpsLock start thread"); 
-           try{Thread.sleep(15000L,0);}catch (Exception e) {}
-           //Log.d(MoodData.MOOD_TAG, "disableGpsLock complete thread"); 
-           viewUpdateHandler.post(mUpdateLocation);
-        }
-     };
-     mWaitAndCheckGPS.start();
    }
    
-   private void startLocationUpdates()
-   {
-      mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener);
-      mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, mLocationListener);
-   }
-   
-     
-   private static final int TWO_MINUTES = 1000 * 60 * 2;
-
    /**
-    * Determines whether one Location reading is better than the current
-    * Location fix
+    * Base class is setup to call this function when location has changed.
     * 
-    * @param location
-    *           The new Location that you want to evaluate
-    * @param currentBestLocation
-    *           The current Location fix, to which you want to compare the new
-    *           one
+    * @param location The updated location.
     */
-   protected boolean isBetterLocation(Location newLocation)
+   @Override
+   public void onLocationChanged(Location location) {
+      super.onLocationChanged(location);
+      
+      if(LocationUpdates.isBetterLocation(location, mBestLocation))
+      {
+         updateBestLocation(location, null);
+      }
+   }
+   
+   /*
+    * Handle results returned to this Activity by other Activities started with
+    * startActivityForResult(). In particular, the method onConnectionFailed()
+    * in LocationUpdateRemover and LocationUpdateRequester may call
+    * startResolutionForResult() to start an Activity that handles Google Play
+    * services problems. The result of this call returns here, to
+    * onActivityResult.
+    */
+   @Override
+   protected void onActivityResult(int requestCode, int resultCode, Intent intent)
    {
-      if(newLocation == null)
-      {
-         return false;
-      }
-      if (mBestLocation == null)
-      {
-         // A new location is always better than no location
-         return true;
-      }
 
-      // Check whether the new location fix is newer or older
-      long timeDelta = newLocation.getTime() - mBestLocation.getTime();
-      boolean isSignificantlyOlder = timeDelta < -TWO_MINUTES;
-      boolean isNewer = timeDelta > 0;
-      // If it's been more than two minutes since the current location, use the
-      // new location
-      // because the user has likely moved
-      if (isSignificantlyOlder)
+      // Choose what to do based on the request code
+      switch (requestCode)
       {
-         return false;
-      }
 
-      // Check whether the new location fix is more or less accurate
-      int accuracyDelta = (int) (newLocation.getAccuracy() - mBestLocation
-            .getAccuracy());
-      boolean isLessAccurate = accuracyDelta > 0;
-      boolean isMoreAccurate = accuracyDelta < 0;
+      case EDIT_LOCATION_REQUEST:
+         if (resultCode == RESULT_OK)
+         {
+            Bundle extras = intent.getExtras();
+            LatLng latlng = extras.getParcelable("BLOG_LATLNG");
+            updateBestLocation(null, latlng);
+            // TODO: timestamp not currently updated anywhere
+            // mOldTime = extras.getString("BLOG_TIMESTAMP");
+         }
+         break;
 
-      // Determine location quality using a combination of timeliness and
-      // accuracy
-      if (isMoreAccurate)
-      {
-         return true;
-      }
-      else if (isNewer && !isLessAccurate)
-      {
-         return true;
-      }
+      // If any other request code was received
+      default:
+         // Report that this Activity received an unknown requestCode
+         Log.d(TAG, getString(R.string.unknown_activity_request_code, requestCode));
 
-      return false;
+         break;
+      }
    }
 
 }

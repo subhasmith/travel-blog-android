@@ -1,0 +1,10 @@
+libs/android-support-v4.jar
+.settings/org.eclipse.jdt.core.prefs
+
+# use glob syntax
+syntax: glob
+
+# Ignore patterns
+.metadata/
+bin/
+gen/
