@@ -88,7 +88,7 @@
             android:layout_below="@id/edit_description"
             android:background="@android:drawable/list_selector_background"
             android:clickable="true"
-            android:drawableLeft="@drawable/marker_red_dot"
+            android:drawableLeft="@drawable/marker_red_circle"
             android:drawablePadding="12dp"
             android:gravity="top"
             android:onClick="editLocation"

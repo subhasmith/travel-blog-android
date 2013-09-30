@@ -42,7 +42,7 @@
                 android:paddingLeft="6sp"
                 android:paddingRight="6sp"
                 android:paddingTop="12sp"
-                android:text="@string/AboutMsg"
+                android:text="@string/about_message"
                 android:textSize="18sp" />
             
             <TextView

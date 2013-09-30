@@ -52,6 +52,7 @@ public class TripMapView extends FragmentActivity {
    BlogData                    mBlogData = null;
 
    private BitmapDescriptor    mIcon     = null;
+   private BitmapDescriptor    mIconFirst= null;
 
    @Override
    public void onCreate(Bundle savedInstanceState) {
@@ -65,8 +66,9 @@ public class TripMapView extends FragmentActivity {
       mBlogData = new BlogData();
       mBlogData.openBlog(filename);
 
-      /* use a simple blue pointer */
-      mIcon = BitmapDescriptorFactory.fromResource(R.drawable.marker_blue_dot);
+      /* use one pointer for the first location, and another for the rest */
+      mIconFirst = BitmapDescriptorFactory.fromResource(R.drawable.marker_green_go);
+      mIcon = BitmapDescriptorFactory.fromResource(R.drawable.marker_blue_circle);
 
       setUpMapIfNeeded();
    }
@@ -126,9 +128,9 @@ public class TripMapView extends FragmentActivity {
    private void addMarkersToMap() {
       /*
       TODO: run this in a thread, yielding ever so often, otherwise, UI
-      thread is blocked for too long adding these markers.
+      thread may be blocked for too long if adding 100s of markers.
       
-      new Thread() {
+      new Thread() { // Or use AsyncThread
          public void run() {
             for (int i = 0; i < size; i++) {
                runOnUiThread(new Runnable() {
@@ -145,6 +147,7 @@ public class TripMapView extends FragmentActivity {
 
       LatLngBounds.Builder bounds = new LatLngBounds.Builder();
       PolylineOptions polylineOptions = new PolylineOptions();
+      BitmapDescriptor icon = mIconFirst; 
 
       for (int i = 0; i < mBlogData.getMaxBlogElements(); ++i) {
          BlogElement blog = mBlogData.getBlogElement(i);
@@ -173,7 +176,8 @@ public class TripMapView extends FragmentActivity {
          polylineOptions.add(latlng);
 
          mMap.addMarker(new MarkerOptions().position(latlng).title(blog.name)
-               .snippet(blog.description).icon(mIcon));
+               .snippet(blog.description).icon(icon));
+         icon = mIcon; // after the first icon is used, then use normal marker icon
       }
 
       mMap.addPolyline(polylineOptions.width(4).color(Color.BLUE));

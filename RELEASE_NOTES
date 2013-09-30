@@ -1,9 +1,9 @@
 Travel Blog for Android - Release Notes
-https://code.google.com/p/travel-blog-android/
-https://play.google.com/store/apps/details?id=com.barkside.travellocblog
 
-Light-weight app to create a list of notes with locations and to
-save it in KML format.
+Source Code and Docs: https://code.google.com/p/travel-blog-android/
+Google Play Store: https://play.google.com/store/apps/details?id=com.barkside.travellocblog
+
+Light-weight app to create a list of notes with locations and timestamps and to save it in KML format.
 
 Version 2.0.0
 =============

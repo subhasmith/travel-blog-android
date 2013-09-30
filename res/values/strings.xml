@@ -45,10 +45,11 @@
     <string name="about_notices_label">COPYRIGHT NOTICES</string>
 
     <!-- Messages -->
-    <string name="HelpMsg">Travel Blog is an open-source location and notes. It tries to minimize battery use.  It also does not require internet access.\n
-\n
-To use, first start with New Trip from the menu.  This will be the KML filename of the blog (located in /TravelBlog/ on your SD card). Now when you want to log your location, just click on New Post.
-This brings up a new page where you can type a name and description.  While you are typing, it finds your location by GPS (if enabled and available), or by WiFi / Cell-id (network).  If you are unhappy with the location, you can later edit the location on a map.\n
+    <string name="help_intro">Travel Blog takes notes that are tagged with the location and the time the note was written.\n
+Click here for the full <a href="https://code.google.com/p/travel-blog-android/wiki/UserGuide">User Guide</a>.\n</string>
+
+    <string name="help_message">To use, first start with New Trip from the menu.  This will be the KML filename of the blog (located in /TravelBlog/ on your SD card). Now when you want to log your location, just click on New Post.
+This brings up a new page where you can type a name and description.  While you are typing, it finds your location by GPS (if enabled and available), or by WiFi / Cell-id (network).  If you are need to modify the location, you can later edit the location on a map.\n
 \n
 Now click Save, or Cancel to cancel. You can edit a post by clicking on it, and you can select delete post by long-clicking on a post. When editing you a given the opportunity to edit the name and description, and optionally to edit the location of your post by clicking on the location coordinates.\n
 \n
@@ -58,11 +59,10 @@ What works well for us is to install the Android Dropbox app, register with Drop
 This works from either the desktop Google Maps, or the mobile Google Maps app.  You can then share this map with friends, or add it to your favourite Blogging website such as Blogger.  This way, your family, friends or colleagues can also know what you are up to.\n
 \n
 Later you can Open Trip to load old trips, or select new Trip again to start again.  Your last Trip is also loaded on start-up.  Nothing runs in the background.\n
-\nFor more information as well as complete User Guide, please visit our pages at http://code.google.com/p/travel-blog-android/\n
 \nHappy travelling!\n
 \nThe Travel Blog Team</string>
 
-    <string name="AboutMsg">A Travel Locations Blog<br/>\n
+    <string name="about_message">A Travel Locations Blog<br/>\n
 <a href="https://code.google.com/p/travel-blog-android/">Source Code</a>\n
 <a href="https://play.google.com/store/apps/details?id=com.barkside.travellocblog">Google Play Store</a>\n
 <a href="https://groups.google.com/forum/travel-blog-android/">Mailing List</a>\n

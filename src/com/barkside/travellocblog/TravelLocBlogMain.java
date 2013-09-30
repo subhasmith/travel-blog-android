@@ -369,7 +369,7 @@ public class TravelLocBlogMain extends Activity
             mapTrip();
             return true;
          case R.id.help:
-            showHelpDialog();
+            startActivity(new Intent(this, HelpActivity.class));
             return true;
          case R.id.trip_info:
             showTripInfo();
@@ -565,26 +565,6 @@ public class TravelLocBlogMain extends Activity
       setDefaultTrip(mFileName);
       mBlogData.openBlog(mFileName);
       refreshList();
-   }
-
-   private void showHelpDialog()
-   {
-      AlertDialog.Builder builder = new AlertDialog.Builder(
-            TravelLocBlogMain.this);
-      String str = this.getString(R.string.app_name) + " "
-            + this.getString(R.string.HelpMsg);
-      builder.setMessage(str);
-      builder.setTitle(this.getString(R.string.menu_help));
-      builder.setPositiveButton(R.string.OK,
-            new DialogInterface.OnClickListener()
-            {
-               public void onClick(DialogInterface dialog, int id)
-               {
-                  dialog.cancel();
-               }
-            });
-      builder.setCancelable(true);
-      builder.create().show();
    }
 
    private void areYouSure()
