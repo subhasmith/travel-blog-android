@@ -374,8 +374,8 @@ public class TravelLocBlogMain extends Activity
          case R.id.trip_info:
             showTripInfo();
             return true;
-         case R.id.about:
-            startActivity(new Intent(this, AboutActivity.class));
+         case R.id.settings:
+            startActivity(new Intent(this, SettingsActivity.class));
             return true;
          default:
             return super.onMenuItemSelected(featureId, item);

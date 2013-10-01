@@ -9,8 +9,10 @@ import com.google.android.gms.maps.model.LatLng;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -31,7 +33,8 @@ public class EditBlogElement extends LocationUpdates
    // Constants
    private static final String TAG = "EditBlogElement";
    
-   // Amount of time to listen to location updates, in seconds
+   // Default amount of time to listen to location updates, in seconds
+   // this is now stored in shared preferences for each user.
    private static final int LOC_UPDATE_DURATION = 15;
    
    private Boolean isNewBlog = false;
@@ -84,23 +87,30 @@ public class EditBlogElement extends LocationUpdates
       if (action.equals("com.barkside.travellocblog.NEW_BLOG_ENTRY"))
       {
          isNewBlog = true;
-         EditText tv = (EditText) findViewById(R.id.edit_description);
 
+         // Create mOldTime note timestamp to store in KML file
          Date dateNow = new Date();
-         // User-friendly date string, in local timezone
-         java.text.DateFormat df = java.text.DateFormat.getDateTimeInstance(
-               java.text.DateFormat.LONG, // dateStyle
-               java.text.DateFormat.SHORT, // timeStyle
-               Locale.US);
-         String dateNowString = df.format(dateNow);
          // KML timestamp, needs to be in UTC
          SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZ", Locale.US);
          sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
          CharSequence charSeq = sdf.format(dateNow);
 
-         mOldTime = charSeq.toString();
-         tv.setText(dateNowString + "\n");
-         tv.setSelection(tv.getText().length());
+         mOldTime = charSeq.toString(); // will be written to KML file as timestamp
+         
+         // Check if we should display current date as first line in description
+         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+         boolean default_desc_on = sharedPref.getBoolean("default_desc_on", true);
+         if (default_desc_on) {
+            // User-friendly date string, in local timezone
+            java.text.DateFormat df = java.text.DateFormat.getDateTimeInstance(
+                  java.text.DateFormat.LONG, // dateStyle
+                  java.text.DateFormat.SHORT, // timeStyle
+                  Locale.US);
+            String dateNowString = df.format(dateNow);
+            EditText tv = (EditText) findViewById(R.id.edit_description);
+            tv.setText(dateNowString + "\n");
+            tv.setSelection(tv.getText().length());
+         }
          
          TextView tvl = (TextView) findViewById(R.id.location);
          tvl.setText("Finding Location...");
@@ -116,7 +126,7 @@ public class EditBlogElement extends LocationUpdates
          mOldLngLat = extras.getString("BLOG_LOCATION");
          mNewLatLng = stringToLatLng(mOldLngLat);
 
-         EditText tv = (EditText) findViewById(R.id.show_name);
+         EditText tv = (EditText) findViewById(R.id.edit_name);
          tv.setText(mNoteName);
          tv.setSelection(tv.getText().length());
          tv = (EditText) findViewById(R.id.edit_description);
@@ -137,7 +147,9 @@ public class EditBlogElement extends LocationUpdates
       // a mNeedLocationUpdates boolean in here and set it off when updates are to be turned off.
       // All that seems unnecessary, so just a simple call below works fine.
       if (isNewBlog) {
-         super.enableLocationUpdates(LOC_UPDATE_DURATION);
+         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+         int duration = sharedPref.getInt("location_duration", LOC_UPDATE_DURATION);
+         super.enableLocationUpdates(duration);
       }
    }
    

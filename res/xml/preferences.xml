@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory android:title="@string/general_settings_title" >
+        <ListPreference
+            android:entries="@array/location_duration_entries"
+            android:entryValues="@array/location_duration_values"
+            android:key="location_duration"
+            android:summary="@string/location_duration_summary"
+            android:title="@string/location_duration" />
+
+        <CheckBoxPreference
+            android:key="default_desc_on"
+            android:summaryOff="@string/default_desc_off"
+            android:summaryOn="@string/default_desc_on"
+            android:title="@string/default_desc_title" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/about_settings_title" >
+        <Preference android:title="@string/about_menu_title" >
+            <intent
+                android:action="android.intent.action.DEFAULT"
+                android:targetClass="com.example.prefs.AboutActivity" />
+        </Preference>
+    </PreferenceCategory>
+
+</PreferenceScreen>

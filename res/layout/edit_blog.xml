@@ -41,40 +41,24 @@
             </Button>
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/name_text"
+        <EditText
+            android:id="@+id/edit_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_below="@id/button_box"
-            android:text="@string/name"
-            android:textSize="16sp" />
-
-        <EditText
-            android:id="@+id/show_name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_below="@id/name_text"
+            android:hint="@string/note_name_hint"
             android:inputType="text|textCapWords|textMultiLine"
             android:minLines="2" >
         </EditText>
-
-        <TextView
-            android:id="@+id/descr_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_below="@id/show_name"
-            android:text="@string/description"
-            android:textSize="16sp" />
 
         <EditText
             android:id="@+id/edit_description"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
-            android:layout_below="@id/descr_text"
+            android:layout_below="@id/edit_name"
+            android:hint="@string/note_desc_hint"
             android:gravity="top"
             android:inputType="text|textCapSentences|textMultiLine"
             android:minLines="5" >
@@ -98,6 +82,7 @@
             android:paddingTop="12sp"
             android:textSize="16sp" >
         </TextView>
+        
         <View
 	         android:layout_width="fill_parent"
 	         android:layout_height="2dip"
