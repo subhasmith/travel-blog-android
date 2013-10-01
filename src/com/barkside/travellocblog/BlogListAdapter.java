@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,7 +15,7 @@ public class BlogListAdapter extends BaseAdapter
 {
 
    // For logging and debugging purposes
-   // private static final String TAG = "BlogListAdapter";
+   private static final String TAG = "BlogListAdapter";
 
    /** Remember our context so we can use it when constructing views. */
    private Context mContext;
@@ -81,6 +82,12 @@ public class BlogListAdapter extends BaseAdapter
       {
          convertView = inflater.inflate(R.layout.blog_list, parent, false);
       }
+      
+      BlogListData item = mItems.get(position);
+      if (item == null){
+         Log.w(TAG, "No item found - probably load KML file error?");
+         return null;
+      }
 
       /*
        * For both name and description, we want to display as much as will fit on one line.
@@ -91,12 +98,11 @@ public class BlogListAdapter extends BaseAdapter
        * after that and not truncating), so now replace all cr lf chars from
        * name and description. Now works better. The ... char is shown at end of TextView line.
        */
-      String text = mItems.get(position).getNameText().trim().replaceAll("\\r|\\n", " ");
+      String text = item.getNameText().trim().replaceAll("\\r|\\n", " ");
       ((TextView) convertView.findViewById(R.id.titleText)).setText(text);
       
-      text = mItems.get(position).getDetailText().trim().replaceAll("\\r|\\n", " ");
+      text = item.getDetailText().trim().replaceAll("\\r|\\n", " ");
       ((TextView) convertView.findViewById(R.id.dexcriptionText)).setText(text);
       return convertView;
    }
-
 }

@@ -169,11 +169,11 @@ public class BlogData
     */
    private Boolean openBlogFromFile()
    {
+      String path = Environment.getExternalStorageDirectory() + mPath + "/" + mFile;
       // Dom it up
       try
       {
-         File file = new File(Environment.getExternalStorageDirectory() + mPath
-               + "/" + mFile);
+         File file = new File(path);
 
          if (file.exists() == false)
             return false;
@@ -184,6 +184,7 @@ public class BlogData
          DocumentBuilder docBuilder = factory.newDocumentBuilder();
 
          Document dom = docBuilder.parse(file);
+         
          Element root = dom.getDocumentElement();
          NodeList placemarks = root.getElementsByTagName("Placemark");
          for (int i = 0; i < placemarks.getLength(); i++)
@@ -248,8 +249,14 @@ public class BlogData
                      Node pointProperty = pointProperties.item(k);
                      if (pointProperty.getNodeName().equalsIgnoreCase("when"))
                      {
-                        blog.timeStamp = (pointProperty.getFirstChild()
-                              .getNodeValue());
+                        Node data = pointProperty.getFirstChild();
+                        if (data == null) {
+                           blog.timeStamp = "";
+                        }
+                        else 
+                        {
+                           blog.timeStamp = data.getNodeValue();
+                        }
                      }
                   }
                }
@@ -260,8 +267,19 @@ public class BlogData
       }
       catch (Exception e)
       {
-         Log.e("TRAVEL_DEBUG", "DOM Parse error", e);
+         Log.e(TAG, "DOM Parse error loading file " + e);
+         /**
+          * TODO: added this return false in version 2.0.0 (Sep 2013).
+          * There was no return false on exception, so sometimes, even when loaded file had
+          * a problem, the rest of the app would continue to execute, and sometimes it worked
+          * fine, sometimes it failed. This should only happen on non-TravelBlog generated
+          * KML files, but leaving in TODO to have it work - handle all possible data files,
+          * and fill in blog data structure as best as it is possible. Basically, need to check
+          * for null pointers in all of the navigation above, as in the blog.timeStamp above.
+          */
+         return false;
       }
+      Log.d(TAG, "Loaded file " + path);
       return true;
    }
 
@@ -321,7 +339,7 @@ public class BlogData
       }
       catch (IOException e)
       {
-         Log.e("IOException", "exception in createNewFile() method");
+         Log.e(TAG, "IOException exception in createNewFile() method");
          return false;
       }
       // we have to bind the new file with a FileOutputStream
@@ -332,7 +350,7 @@ public class BlogData
       }
       catch (FileNotFoundException e)
       {
-         Log.e("FileNotFoundException", "can't create FileOutputStream");
+         Log.e(TAG, "FileNotFoundException can't create FileOutputStream");
          return false;
       }
       // we create a XmlSerializer in order to write xml data
@@ -428,8 +446,7 @@ public class BlogData
                   }
                   catch (Exception e)
                   {
-                     Log.e("Exception",
-                           "error occurred while reading blog name");
+                     Log.e(TAG, "Exception error occurred while reading blog name");
                   }
                   serializer.endTag(null, "description");
                }
@@ -487,7 +504,7 @@ public class BlogData
       }
       catch (Exception e)
       {
-         Log.e("Exception", "error occurred while creating xml file");
+         Log.e(TAG, "Exception error occurred while creating xml file");
          return false;
       }
       return true;
@@ -502,12 +519,20 @@ class BlogElement
    public String name;
    public String location;
    public String timeStamp;
+   static String EMPTY_STRING = "";
 
    public BlogElement()
    {
-      this.description = null;
-      this.name = null;
-      this.location = null;
-      this.timeStamp = null;
+      /**
+       * Many parts of code expect string for these fields. And in error cases such as
+       * when an foreign .kml file is loaded, having null here can cause the app to never
+       * be able to start, crashes on trying to load the bad file.
+       * So, make these variables a string so a string call like trim() or split() won't
+       * terminate the app.
+       */
+      this.description = EMPTY_STRING;
+      this.name = EMPTY_STRING;
+      this.location = EMPTY_STRING;
+      this.timeStamp = EMPTY_STRING;
    }
 }
