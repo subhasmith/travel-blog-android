@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.barkside.travellocblog"
     android:versionCode="6"
-    android:versionName="2.0.0" >
+    android:versionName="2.0.1" >
 
     <permission
         android:name="com.barkside.travellocblog.permission.MAPS_RECEIVE"
@@ -54,7 +54,6 @@
             android:screenOrientation="portrait" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

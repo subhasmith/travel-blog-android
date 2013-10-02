@@ -2,19 +2,23 @@
 <resources>
 
     <string-array name="location_duration_entries">
-        <item>5 seconds</item>
         <item>10 seconds</item>
         <item>15 seconds</item>
         <item>20 seconds</item>
         <item>30 seconds</item>
     </string-array>
 
-    <integer-array name="location_duration_values">
-        <item>5</item>
+    <!--
+    http://code.google.com/p/android/issues/detail?id=2096
+    Android bug: ListPrefence can only support string-array for values, otherwise will crash
+    when user selects a value of if defaultValue is used.
+    -->
+
+    <string-array name="location_duration_values">
         <item>10</item>
-        <item>15</item>
+        <item>15</item> <!--  this is used as defaultValue in preferences.xml -->
         <item>20</item>
         <item>30</item>
-    </integer-array>
+    </string-array>
 
 </resources>

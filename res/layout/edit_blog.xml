@@ -48,6 +48,7 @@
             android:layout_alignParentLeft="true"
             android:layout_below="@id/button_box"
             android:hint="@string/note_name_hint"
+            android:textStyle="bold"
             android:inputType="text|textCapWords|textMultiLine"
             android:minLines="2" >
         </EditText>

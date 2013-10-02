@@ -23,7 +23,7 @@ public class AboutActivity extends Activity
    {
       super.onCreate(savedInstanceState);
       setContentView(R.layout.about_activity);
-
+      
       String version = "0.0.0"; // to denote unknown version
       try
       {

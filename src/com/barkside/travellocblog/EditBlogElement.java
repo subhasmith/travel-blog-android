@@ -99,7 +99,8 @@ public class EditBlogElement extends LocationUpdates
          
          // Check if we should display current date as first line in description
          SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-         boolean default_desc_on = sharedPref.getBoolean("default_desc_on", true);
+         String key = SettingsActivity.DEFAULT_DESC_ON_KEY;
+         boolean default_desc_on = sharedPref.getBoolean(key, true);
          if (default_desc_on) {
             // User-friendly date string, in local timezone
             java.text.DateFormat df = java.text.DateFormat.getDateTimeInstance(
@@ -148,7 +149,12 @@ public class EditBlogElement extends LocationUpdates
       // All that seems unnecessary, so just a simple call below works fine.
       if (isNewBlog) {
          SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-         int duration = sharedPref.getInt("location_duration", LOC_UPDATE_DURATION);
+         // http://code.google.com/p/android/issues/detail?id=2096
+         // Expand ListPreference to support alternate array types
+         // so can't use int for duration, have to convert from string!
+         String selected = sharedPref.getString(SettingsActivity.LOCATION_DURATION_KEY,
+               Integer.toString(LOC_UPDATE_DURATION));
+         int duration = Integer.parseInt(selected);
          super.enableLocationUpdates(duration);
       }
    }

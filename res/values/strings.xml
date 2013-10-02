@@ -25,6 +25,7 @@
     <string name="new_post">New Post</string>
     <string name="default_trip">MyFirstTrip.kml</string>
 
+    <string name="menu_new_note">New Note</string>
     <string name="menu_open">Open Trip</string>
     <string name="menu_new">New Trip</string>
     <string name="menu_info">Trip Info</string>
@@ -47,10 +48,10 @@
 
     <!-- Settings (Preferences) strings -->
     <string name="location_duration">Location fix duration</string>
-    <string name="location_duration_summary">How long to listen for location updates. This activity consumes battery.</string>
-    <string name="default_desc_title">Create default description</string>
-    <string name="default_desc_on">Enter current date as first line of the description in a new note.</string>
-    <string name="default_desc_off">Leave new note default description blank</string>
+    <string name="location_duration_summary"></string>
+    <string name="default_desc_title">Default description text</string>
+    <string name="default_desc_on">Current date/time used</string>
+    <string name="default_desc_off">No default text entered</string>
     <string name="about_settings_title">ABOUT</string>
     <string name="about_menu_title">About Travel Blog</string>
     <string name="general_settings_title">GENERAL SETTINGS</string>

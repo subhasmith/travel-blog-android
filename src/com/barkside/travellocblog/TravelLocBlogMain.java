@@ -12,6 +12,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.Menu;
@@ -99,6 +100,13 @@ public class TravelLocBlogMain extends Activity
       }
       mNewDialog = new Dialog(this);
       initList();
+      
+      // Settings menu: These two lines are working around an android bug to set boolean defaults
+      // http://code.google.com/p/android/issues/detail?id=6641
+      SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+      String key = SettingsActivity.DEFAULT_DESC_ON_KEY;
+      prefs.edit().putBoolean(key, prefs.getBoolean(key, true)).commit();
+ 
    }
 
    /* Called to edit a blog post, by passing extras in a bundle */
