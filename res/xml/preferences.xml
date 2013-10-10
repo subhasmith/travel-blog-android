@@ -6,8 +6,8 @@
             android:key="location_duration"
             android:entries="@array/location_duration_entries"
             android:entryValues="@array/location_duration_values"
-            android:defaultValue="15"
-            android:summary="@string/location_duration_summary"
+            android:defaultValue="@string/location_duration_default"
+            android:summary="@string/location_duration_default"
             android:title="@string/location_duration" />
 
         <CheckBoxPreference

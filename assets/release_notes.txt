@@ -1,0 +1,52 @@
+= Version 2.0 =
+
+October 2013
+
+ * Location can now be edited. Clicking on location bring up map with a draggable marker to edit the location.
+
+ * Single click on blog entry in the main list now shows details of the entry and provides editing capability same as the "Edit Post" context command.
+ 
+ * Single click on the location longitude,latitude text will open up the visual location editor.
+
+ * Now uses Google Play Services API, which takes care of power usage and provides a Fused location provider for updating location info.
+   The new Location API handles power and accuracy on its own. So we no can longer shut it off by looking at the provider type, instead, we just keep updating the location for a brief amount of time that can be set by the user.
+   After that, the updater is shut off to conserve battery.
+
+ * Added Setting menu option to allow user preference settings.
+   Current settings include how long should new notes look for location updates, and whether to create default descriptions with current date and time for a new note. 
+
+ * There is no Retry Location fix anymore, to avoid complexity. The new Location Api should give a pretty good location fix fast, and user can always edit the location on a map.
+  
+ * Fixed reported issue#2 kml file format now correctly adds the xmlns attribute to kml tag and not the Document tag.
+
+ * Android device requirements: Android 2.2 or higher and should include Google Play Store.
+   Necessary for Google Play Services (to display maps, get location updates using the Fused provider.
+   ActionBar implementation uses the v7 appcompat Android support library.
+   
+Version 1.7
+===========
+August 2011
+
+ * The first open-sourced version, where adverts are removed.
+   Any further releases will be documented here: http://code.google.com/p/travel-blog-android/
+
+Version 1.6
+===========
+ * TimeStamp in kml so animation can be done in Google Earth.
+ * Fixed format of date/time so it matches your phone's settings and locale.
+ * Fixed Force Close when viewing map with no points.
+
+Version 1.51
+===========
+ * Fixed edit and delete posts.
+ * Add space between coods for lines to work on KML export.
+ * Cursor in edit boxs are now at the end by default.
+
+Version 1.5
+===========
+ * Fixed the name!
+
+Version 1.4
+===========
+ * Initial release.
+

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Help Message -->
+    <string name="help_message">Travel Blog app creates posts tagged with location and timestamp.\n
+The full <a href="https://code.google.com/p/travel-blog-android/wiki/UserGuide">User Guide</a>.\n
+The New Trip menu command starts a new trip. This will be the KML filename of the blog (located in /TravelBlog/ on your SD card).\n
+Click on New Post when you want to log your location.
+This brings up a new page where you can type a name and description.  While you are typing, it finds your location by GPS (if enabled and available), or by WiFi / Cell-id (network).  If you are need to modify the location, you can later edit the location on a map.\n
+\n
+To complete, click Save or Cancel as needed.
+You can edit a post by clicking on it, and you can delete a post by long-clicking on a post and selecting the delete command.
+When editing you a given the opportunity to edit the name and description, and optionally to edit the location of your post by clicking on the location coordinates.\n
+\n
+Whenever you choose, you can view your trip on a Google map on your device by choosing Map Trip from the menu.  You can copy the KML blog file manually to do what you choose with it, or you can send it via email or wherever your device can send it to by choosing Send Trip from the menu.\n
+\n
+What works well for us is to install the Android Dropbox app, register with Dropbox, and then Send the KML file to your Dropbox public folder.  In Dropbox you can get a link to your file which you can enter into the Search Maps box in Google Maps.
+This works from either the desktop Google Maps, or the mobile Google Maps app.  You can then share this map with friends, or add it to your favourite Blogging website such as Blogger.  This way, your family, friends or colleagues can also know what you are up to.\n
+\n
+Later you can Open Trip to load old trips, or select new Trip again to start again.  Your last Trip is also loaded on start-up.  Nothing runs in the background.\n
+\nHappy travelling!\n
+\nThe Travel Blog Team</string>
+
+    <!--  About Message -->
+    <string name="about_message">Travel Blog location app<br/>\n
+<a href="https://code.google.com/p/travel-blog-android/">Source Code and Docs</a>\n
+<a href="https://play.google.com/store/apps/details?id=com.barkside.travellocblog">Google Play Store</a>\n
+Copyright 2011 Barkside Apps</string>
+
+    <!--  What's New Message -->
+    <string name="whatsnew_message">What\'s New\n
+Version 2.0.1\n
+* Locations are now editable using a map. When editing a post, click on location text to bring up a map.\n
+
+* Clicking on blog entry in the main list now invokes the post editing screen.
+
+* Settings menu added for customizing app behavior.
+
+Version 1.7\n
+* App is now open source.</string>
+        
+</resources>

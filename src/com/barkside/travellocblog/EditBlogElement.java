@@ -37,21 +37,33 @@ public class EditBlogElement extends LocationUpdates
    // this is now stored in shared preferences for each user.
    private static final int LOC_UPDATE_DURATION = 15;
    
-   private Boolean isNewBlog = false;
+   private Boolean mIsNewBlog = false;
    
-   // We have two sources of current position. One comes from the phone location listener,
-   // and it returns a Location object. The second comes from editing a saved note (blog entry)
-   // or from the EditLocation activity, both of which return LatLng data.
+   // We have multiple sources of current location data.
+   // The priority is: mEditedLatLng then mBestLocation then mOldLatLng.
+   
+   // This one comes from LocationListener - can be from a getLastLocation call, or from
+   // onLocationChanged event.
    private Location mBestLocation = null;
-   private LatLng mNewLatLng = null;
    
-   private String mNoteName = null;
+   // This current location comes from the EditLocation activity, if the user clicks
+   // on location and manually edits it on the map.
+   private LatLng mEditedLatLng = null;
+
+   // This one comes from the calling activity - the old blog location when editing it,
+   // or a default location to use (if needed) when creating a new blog.
+   // When creating a New Post, if user has turned off GPS or location services, we need
+   // to guess at some location to use when the user clicks to edit location.
+   private LatLng mOldLatLng = null;
    
-   // Previously saved values, if editing an existing note entry.
+   private String mTitle = null;
+   
+   // Calling activity passes this data as starting values.
    private String mOldLngLat = null;
    private String mOldTime = null;
    
    private final int EDIT_LOCATION_REQUEST = 100;
+
    
    /**
     * Return the layout to inflate, to the abstract base class.
@@ -82,11 +94,16 @@ public class EditBlogElement extends LocationUpdates
       super.onCreate(savedInstanceState);
       // setContentView handled by base class, using getLayoutResourceId()
 
+      mBestLocation = null;
+      mEditedLatLng = null;
+      mOldLatLng = null;
+      
       Intent intent = getIntent();
       String action = intent.getAction();
+      Bundle extras = intent.getExtras();
       if (action.equals("com.barkside.travellocblog.NEW_BLOG_ENTRY"))
       {
-         isNewBlog = true;
+         mIsNewBlog = true;
 
          // Create mOldTime note timestamp to store in KML file
          Date dateNow = new Date();
@@ -113,31 +130,27 @@ public class EditBlogElement extends LocationUpdates
             tv.setSelection(tv.getText().length());
          }
          
-         TextView tvl = (TextView) findViewById(R.id.location);
-         tvl.setText("Finding Location...");
+         mOldLngLat = extras.getString("BLOG_LOCATION");
       }
       else if (action.equals("com.barkside.travellocblog.EDIT_BLOG_ENTRY"))
       {
          // Requested to edit: set that state, and the data being edited.
-         isNewBlog = false;
-         Bundle extras = intent.getExtras();
-         mNoteName = extras.getString("BLOG_NAME");
+         mIsNewBlog = false;
+         mTitle = extras.getString("BLOG_NAME");
          String descr = extras.getString("BLOG_DESCRIPTION");
          mOldTime = extras.getString("BLOG_TIMESTAMP");
          mOldLngLat = extras.getString("BLOG_LOCATION");
-         mNewLatLng = stringToLatLng(mOldLngLat);
 
-         EditText tv = (EditText) findViewById(R.id.edit_name);
-         tv.setText(mNoteName);
+         EditText tv = (EditText) findViewById(R.id.edit_title);
+         tv.setText(mTitle);
          tv.setSelection(tv.getText().length());
          tv = (EditText) findViewById(R.id.edit_description);
          tv.setText(descr);
          tv.setSelection(tv.getText().length());
-
-         TextView tvl = (TextView) findViewById(R.id.location);
-         String lnglat = getLngLat(this, mNewLatLng);
-         tvl.setText(lnglat);
       }
+
+      Log.d(TAG, "Starting, got loc " + mOldLngLat);
+      mOldLatLng = stringToLatLng(mOldLngLat);
       
       this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
       
@@ -147,7 +160,7 @@ public class EditBlogElement extends LocationUpdates
       // Since we need to start this timer only after an onConnected event, will need to create
       // a mNeedLocationUpdates boolean in here and set it off when updates are to be turned off.
       // All that seems unnecessary, so just a simple call below works fine.
-      if (isNewBlog) {
+      if (mIsNewBlog) {
          SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
          // http://code.google.com/p/android/issues/detail?id=2096
          // Expand ListPreference to support alternate array types
@@ -157,45 +170,71 @@ public class EditBlogElement extends LocationUpdates
          int duration = Integer.parseInt(selected);
          super.enableLocationUpdates(duration);
       }
+      
+      // After all data is setup, including starting location updates, display the location
+      displayLocation();
    }
    
    /**
-    * Update the note entry to use the given location.
-    * It is assumed that the given loc is to be considered the best location
-    * from this time on.
-    *
-    * @param loc A Location object containing the current location.
-    *        null is allowed - it means we don't have a Location object.
-    * @param latlng A LatLng object containing the current position.
-    *        Only used if loc is null.
-    * @return void
+    * Return a LatLng object that represents the current location.
+    * This function looks at all the places we have stashed location, and returns the
+    * correct LatLng based on the priority order of all the location data objects.
+    * In rare cases (such as when entering first new entry in a new trip and there is
+    * no location fix yet) this can return null.
     */
-   private void updateBestLocation(Location loc, LatLng latlng)
+   private LatLng getCurrentLatLng()
    {
-      if(loc == null && latlng == null) {
-         Log.w(TAG, "updateBestLocation got both null args");
+      LatLng latlng = null;
+
+      // follow priority order of location to use
+      if (mEditedLatLng != null)
+      {
+         latlng = mEditedLatLng;
+      }
+      else if (mBestLocation != null)
+      {
+         latlng = new LatLng(mBestLocation.getLatitude(), mBestLocation.getLongitude());
+      }
+      else
+      {
+         latlng = mOldLatLng; // in very rare cases, this may be null
+      }
+      return latlng;
+   }
+   /**
+    * Update the textview showing the location with current location data.
+    */
+   private void displayLocation()
+      {
+      TextView tv = (TextView) findViewById(R.id.location);
+      
+      // Check if new blog and displaying first message before any LocationUpdates location
+      // data received.
+      // Display a "starting location fix" message. Most likely  the user will never
+      // see this because as soon as we get a onConnected message, we will display last
+      // known location. The onConnected message comes in pretty fast when there was
+      // a previous location on the phone. If user turns off GPS, this is not true -
+      // it may never get a onConnected event and this message will stay for ever!
+      if (mIsNewBlog && mBestLocation == null && updatesRequested())
+      {
+         tv.setText(R.string.finding_location); 
          return;
       }
       
-      mBestLocation = loc; // may be null
-      if (mBestLocation != null) {
-         Log.d(TAG, "updateBestLocation got new mBestLocation");
-         mNewLatLng = new LatLng(mBestLocation.getLatitude(), mBestLocation.getLongitude());
-      } else {
-         mNewLatLng = latlng;
-      }
-      
-      TextView tv = (TextView) findViewById(R.id.location);
       Context context = getApplicationContext();
-      String lnglat = getLngLat(context, mNewLatLng);
+      String displayLoc = "<unknown>"; // default, but never shown
+      String suffix = ""; // explanation text to display after the location
+      LatLng latlng = getCurrentLatLng();
       
-      if (mBestLocation != null) {
-         // We have a Location object and can display Accuracy value
-         String accuracy = getAccuracy(context, loc);
-         lnglat += " Accuracy: " + accuracy;
+      // We also need to display accuracy, if we have it and no manual edits occurred
+      if (mIsNewBlog && mEditedLatLng == null && mBestLocation != null)
+      {
+         String accuracy = getAccuracy(context, mBestLocation);
+         suffix = "\n" + accuracy;            
       }
       
-      tv.setText(lnglat);
+      displayLoc = getLngLat(context, latlng);
+      tv.setText(displayLoc + suffix);
    }
 
    /*
@@ -203,11 +242,6 @@ public class EditBlogElement extends LocationUpdates
     */
    public void editLocation(View view)
    {
-      if (mNewLatLng == null)
-      {
-         Log.d(TAG, "start editLocation activity: mNewLatLng is null! ");
-         return;
-      }
       Log.d(TAG, "start editLocation activity");
 
       // Since we going to manually edit the location, turn off the location updates.
@@ -215,9 +249,13 @@ public class EditBlogElement extends LocationUpdates
       
       Intent i = new Intent(this, EditLocation.class);
       Bundle b = new Bundle();
-      b.putString("BLOG_NAME", mNoteName);
-      b.putString("BLOG_TIMESTAMP", mOldTime);
-      b.putParcelable("BLOG_LATLNG", mNewLatLng);
+      b.putString("BLOG_NAME", mTitle);
+      LatLng latlng = getCurrentLatLng();
+      Log.d(TAG, "calling editLocation with " + latlng);
+      if (latlng != null)
+      {
+         b.putParcelable("BLOG_LATLNG", latlng);         
+      }
       i.putExtras(b);
       i.setAction(Intent.ACTION_EDIT);
       startActivityForResult(i, EDIT_LOCATION_REQUEST);
@@ -232,33 +270,39 @@ public class EditBlogElement extends LocationUpdates
    {
       switch (view.getId()) {
       case R.id.save_button:
-         String location = "";
-         // Always save using the NewLatLng, should always be available
-         if (mNewLatLng != null)
+         String locString = "";
+         // Always save using the current LatLng, should be available nearly always
+         LatLng latlng = getCurrentLatLng();
+         if(latlng == null)
          {
-            location = mNewLatLng.longitude + "," + mNewLatLng.latitude + ",0";
+            Toast.makeText(this, R.string.location_missing,Toast.LENGTH_LONG).show();
+            // Don't finish this task, stay on this same screen
+            return;
          }
-         else
+         locString = latlng.longitude + "," + latlng.latitude + ",0";
+
+         Log.d(TAG, "Saving blog location " + locString);
+         // Either title or description must be provided, if not, stay on this activity screen
+         EditText et = (EditText) findViewById(R.id.edit_title);
+         String title = et.getText().toString();
+         
+         et = (EditText) findViewById(R.id.edit_description);
+         String desc = et.getText().toString();      
+
+         if(title.trim().length() == 0 && desc.trim().length() == 0)
          {
-            Log.w(TAG, "mNewLatLng is null when saving blog!");
+            Toast.makeText(this, R.string.title_desc_missing,Toast.LENGTH_LONG).show();
+            // Don't finish this task, stay on this same screen
+            return;
          }
 
          Intent intent = new Intent();
          Bundle extras = new Bundle();
-         EditText et = (EditText) findViewById(R.id.show_name);
-         String str = et.getText().toString().trim();
-         if(str.length() == 0)
-         {
-            Toast toast = Toast.makeText(this, "Failed: enter a valid name", Toast.LENGTH_SHORT);
-            toast.show();
-            return;
-         }
-         Log.d(TAG, "Edit done (save) for " + str + " location " + location);
-         extras.putString("BLOG_NAME", str);
-         et = (EditText) findViewById(R.id.edit_description);
-         str = et.getText().toString();      
-         extras.putString("BLOG_DESCRIPTION", str);
-         extras.putString("BLOG_LOCATION", location);
+         
+         Log.d(TAG, "Edit done saving title (" + title + ") location: " + locString);
+         extras.putString("BLOG_NAME", title);
+         extras.putString("BLOG_DESCRIPTION", desc);
+         extras.putString("BLOG_LOCATION", locString);
          extras.putString("BLOG_TIMESTAMP", mOldTime);
          intent.putExtras(extras);
          setResult(RESULT_OK, intent);
@@ -279,38 +323,75 @@ public class EditBlogElement extends LocationUpdates
    public void onConnected(Bundle bundle)
    {
       super.onConnected(bundle);
-      Log.d(TAG, "onConnected");
+      
+      // As soon as we connect to Google Play Services, we can get the best known
+      // last location, which is good enough to start with. We don't want to wait
+      // for an onLocationChanged event, which might take a long time to fire if
+      // user has only turned on GPS and not WiFi/Cell location services.
+      // As long as user has turned on some Location Services on their phone, this
+      // callback comes in pretty fast. Though if the user has turned off Network location
+      // services, this can be null since using only GPS can take a long time for a fix.
+      // We only need to get location if we are editing a new blog.
+      if (mIsNewBlog)
+      {
+         Location loc = getLastLocation();
+         if (loc != null)
+         {
+            mBestLocation = loc;
+            displayLocation();
+            Log.d(TAG, "onConnected got loc");
+         }
+         else
+         {
+            // According to the doc, this is rare, should always get a non-null getLastLocation
+            // That is actually only true if this or some other app got a location fix recently...
+            Log.w(TAG, "onConnected got null loc");
+         }
+      }
    }
-   
-   @Override
-   public void onStart()
-   {
-      Log.d(TAG, "onStart");
-      super.onStart();
-   }
-   
-   @Override
-   public void onStop()
-   {
-      Log.d(TAG, "onStop");
-      super.onStop();
-   }
-   
+     
    /**
-    * Base class is setup to call this function when location has changed.
+    * Super class is setup to call this function when location has changed.
     * 
     * @param location The updated location.
     */
    @Override
    public void onLocationChanged(Location location) {
       super.onLocationChanged(location);
-      
+      Log.d(TAG, "onLocationChanged"); // TODO comment out, may get a lot of these
       if(LocationUpdates.isBetterLocation(location, mBestLocation))
       {
-         updateBestLocation(location, null);
+         mBestLocation = location;
+         displayLocation();
       }
    }
    
+   /**
+    * Use the start/stop PeriodicUpdates methods to change the displayed location.
+    */
+   @Override
+   protected void startPeriodicUpdates() {
+      super.startPeriodicUpdates();
+      // Show a message that we are looking for a new location...
+      displayLocation();
+   }
+   
+   @Override
+   protected void stopPeriodicUpdates() {
+      boolean updatesRequested = updatesRequested();
+      super.stopPeriodicUpdates();
+      // Show a message that we stopped looking for a new location...
+      // This could happen if the location duration setting was too short, or if the
+      // user clicked on location to start the EditLocation activity.
+      // Need to be careful: don't want this message seen too many times. The predicate
+      // below tries to limit these message. 
+      if (updatesRequested && mBestLocation == null)
+      {
+         Toast.makeText(this, R.string.no_location_fix, Toast.LENGTH_LONG).show();
+      }
+      displayLocation();
+   }
+
    /*
     * Handle results returned to this Activity by other Activities started with
     * startActivityForResult(). In particular, the method onConnectionFailed()
@@ -332,10 +413,10 @@ public class EditBlogElement extends LocationUpdates
          {
             Bundle extras = intent.getExtras();
             LatLng latlng = extras.getParcelable("BLOG_LATLNG");
-            updateBestLocation(null, latlng);
-            // TODO: timestamp not currently updated anywhere
-            // mOldTime = extras.getString("BLOG_TIMESTAMP");
+            mEditedLatLng = latlng;
+            Log.d(TAG, "Got location from EditLocation exit: " + latlng);
          }
+         displayLocation();
          break;
 
       // If any other request code was received

@@ -29,14 +29,17 @@ import android.content.IntentSender;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentActivity;
@@ -137,17 +140,20 @@ public abstract class LocationUpdates extends FragmentActivity implements
      */
     private boolean mUpdatesRequested = false;
     
+    public final static int mNoAutoOff = -9999; // should match @location_duration_values array
+    private int mUpdatesDurationSecs = mNoAutoOff;
+    
     private final Handler timerHandler = new Handler();
     private final Runnable timerEvent = new Runnable() {
         @Override
         public void run() {
-            // Note: this Log.d shows up twice in log - once at start of time,
-            // and once when it fires! But the rest of the function only is called once..
-            // So, ignore the LogCat if this is seen twice between duration of handler events.
-            Log.d(TAG, "timer to stop updates - either added, or triggered.");
+            Log.d(TAG, "timer triggered to stop location updates");
             stopPeriodicUpdates(); 
         }
     };
+
+    // If no location services are turned on, and we need location updates, we display a warning.
+    private boolean mDisplayedServiceOffMessage =false;
         
     /*
      * Returns the R.layout.id for the activity content.
@@ -211,13 +217,18 @@ public abstract class LocationUpdates extends FragmentActivity implements
      */
     protected void enableLocationUpdates(int durationSecs) {
         mUpdatesRequested = true;
+        mUpdatesDurationSecs = durationSecs;
+        
         if (durationSecs > 0) {
-           Log.d(TAG, "timer fired, stop updates");
+           Log.d(TAG, "Starting location timer for seconds: " + durationSecs);
            // Since we may be called multiple times in case caller has to turn on/off location
            // updates multiple times, for each enable call we set the time again, and
            // we make sure to remove old callbacks before we add a new one.
            timerHandler.removeCallbacks(timerEvent);
            timerHandler.postDelayed(timerEvent, durationSecs * MILLISECONDS_PER_SECOND);
+           // Not using setExpirationDuration since we may be called multiple times, and
+           // need to keep resetting the duration, which can't be done with setExpirationDuration
+           // mLocationRequest.setExpirationDuration(durationSecs * MILLISECONDS_PER_SECOND); 
         }
     }
     
@@ -282,6 +293,33 @@ public abstract class LocationUpdates extends FragmentActivity implements
     public void onResume() {
         super.onResume();
         Log.d(TAG, "onResume");
+        // If user has turned off location services, there will never be location
+        // event - neither onConnected nor onLocationChanged. Detect that and report to user.
+        if (mUpdatesRequested && !isLocationServiceOn()) 
+        {
+           if (mDisplayedServiceOffMessage )
+           {
+              // We display the dialog only once, after that, just a Toast is enough
+              Toast.makeText(this, R.string.no_location_services_message, Toast.LENGTH_SHORT).show();
+           } else
+           {
+              // First time in, display a warning dialog about turning on location services.
+              mDisplayedServiceOffMessage = true;
+              AlertDialog.Builder builder = new AlertDialog.Builder(this);
+              builder.setMessage(this.getString(R.string.no_location_services_message));
+              builder.setTitle(this.getString(R.string.no_location_services_title));
+              builder.setPositiveButton(R.string.OK,
+                    new DialogInterface.OnClickListener()
+                    {
+                       public void onClick(DialogInterface dialog, int id)
+                       {
+                          dialog.cancel();
+                       }
+                    });
+              builder.setCancelable(true);
+              builder.create().show();
+           }
+        }
     }
 
     /*
@@ -347,8 +385,7 @@ public abstract class LocationUpdates extends FragmentActivity implements
 
         // If Google Play services is available
         if (ConnectionResult.SUCCESS == resultCode) {
-            // In debug mode, log the status
-            Log.d(TAG, getString(R.string.play_services_available));
+            // Log.d(TAG, getString(R.string.play_services_available));
 
             // Continue
             return true;
@@ -421,7 +458,9 @@ public abstract class LocationUpdates extends FragmentActivity implements
     public void onConnected(Bundle bundle) {
         Log.d(TAG, "onConnected");
 
-        startPeriodicUpdates();
+        if (mUpdatesRequested) {
+           startPeriodicUpdates();
+        }
     }
 
     /*
@@ -479,9 +518,16 @@ public abstract class LocationUpdates extends FragmentActivity implements
      */
     @Override
     public void onLocationChanged(Location location) {
-        // Nothing to do in this abstract class.
-        // Concrete class will override this function and use the location.
-        // If we care, the text of the location is == getLatLng(this, location);
+       // We received a location fix.
+       // If needed: the text of the location is == getLatLng(this, location);
+
+       // If this is the first location fix received, we may need to start timer
+       int durationSecs = mUpdatesDurationSecs; 
+       if (durationSecs < 0 && durationSecs != mNoAutoOff) {
+          timerHandler.removeCallbacks(timerEvent);
+          timerHandler.postDelayed(timerEvent, (- durationSecs) * MILLISECONDS_PER_SECOND);
+          mUpdatesDurationSecs = 0; // reset it since we only need to set timer once
+       }
     }
 
     /**
@@ -504,6 +550,10 @@ public abstract class LocationUpdates extends FragmentActivity implements
         // This can be called multiple times - if called again, will just replace
         // the old listener with "this" object.
         mLocationClient.requestLocationUpdates(mLocationRequest, this);
+    }
+
+    protected boolean updatesRequested() {
+       return mUpdatesRequested;
     }
 
     /**
@@ -646,7 +696,7 @@ public abstract class LocationUpdates extends FragmentActivity implements
             mActivityIndicator.setVisibility(View.GONE);
 
             // Set the address in the UI
-            // TODO: when geoCoding is needed, figure out how to send this data to concrete class.
+            // TODO: when geoCoding is needed, figure out how to send this data to the subclass.
             // mAddress.setText(address);
         }
     }
@@ -805,24 +855,25 @@ public abstract class LocationUpdates extends FragmentActivity implements
         }
         return locobj;
     }
-    // Parse the stored blog.location string into Location object
+    // Parse the stored blog.location string into LatLng object.
+    // null or "" locstr returns null, as does an invalid locstr.
     public static LatLng stringToLatLng(String locstr)
     {
         if (locstr == null) {
             return null;
         }
-        LatLng locobj = null;
+        LatLng latlng = null;
         try {
             String temp[] = locstr.split(",");
             if (temp.length >= 2) {
                 float lon = Float.parseFloat(temp[0]);
                 float lat = Float.parseFloat(temp[1]);
-                locobj = new LatLng(lat, lon);
+                latlng = new LatLng(lat, lon);
             }
         } catch (PatternSyntaxException e) {
             Log.e(TAG, "Internal program error incorrect split argument");
         }
-        return locobj;
+        return latlng;
     }
 
     /** Determines whether one Location reading is better than the current Location fix
@@ -876,8 +927,9 @@ public abstract class LocationUpdates extends FragmentActivity implements
     }
     
     private static final int TWO_MINUTES = 1000 * 60 * 2;
+    
     /** Checks whether two providers are the same.
-     * Not really necessary for the Fused provider using new Google Maps API v2, but here just in case.
+     * Not really necessary for the single Fused provider using new Google Maps API v2.
      */
     private static boolean isSameProvider(String provider1, String provider2) {
         if (provider1 == null) {
@@ -885,6 +937,21 @@ public abstract class LocationUpdates extends FragmentActivity implements
         }
         return provider1.equals(provider2);
     }
+    
+    /**
+     * Check if user has turned on location services. If not, then we'll never get
+     * onConnected or onLocationChanged events.
+     * Google Play services does not catch this condition, so have to manually check it.
+    http://stackoverflow.com/questions/16862987/android-check-location-services-enabled-with-play-services-location-api
+     */
+    public boolean isLocationServiceOn()
+    {
+       LocationManager locationManager = (LocationManager)
+             getSystemService(Context.LOCATION_SERVICE);
 
+       List<String> allProviders = locationManager.getProviders(true);
+       Log.d(TAG, "Enabled providers: " + allProviders);
+       return (allProviders.size() > 0);
+    }
 
 }

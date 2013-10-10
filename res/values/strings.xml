@@ -3,17 +3,17 @@
 
     <!-- Application identifiers -->
     <string name="app_name">Travel Blog</string>
-    <string name="app_description">        Saves blog entries with location and notes.</string>
+    <string name="app_description">        Saves blog entries with location and timestamp.</string>
 
     <!-- Longitude, Latitude format (order is same as KML coordinates element) -->
     <string name="longitude_latitude_format">%1$.4f, %2$.4f</string>
     <string name="latitude_longitude_format">%1$.4f, %2$.4f</string>
-    <string name="accuracy_format">%1$.1f m</string>
+    <string name="accuracy_format">± %1$.1f m</string>
 
     <!-- Menu title -->
 
     <!-- Labels -->
-    <string name="note_name_hint">Enter title</string>
+    <string name="note_title_hint">Enter title</string>
     <string name="note_desc_hint">Enter description</string>
 
     <string name="save">Save</string>
@@ -25,7 +25,7 @@
     <string name="new_post">New Post</string>
     <string name="default_trip">MyFirstTrip.kml</string>
 
-    <string name="menu_new_note">New Note</string>
+    <string name="menu_new_post">New Post</string>
     <string name="menu_open">Open Trip</string>
     <string name="menu_new">New Trip</string>
     <string name="menu_info">Trip Info</string>
@@ -43,43 +43,40 @@
     <string name="are_you_sure">Are you sure?</string>
     <string name="are_you_sure_msg">Are you sure you want to delete this post?</string>
     <string name="map_not_ready">Map is not fully loaded yet</string>
-    <string name="about_name_version_format">%1$s (Version %2$s)</string>
+    <string name="app_name_version_format">%1$s (Version %2$s)</string>
     <string name="about_notices_label">COPYRIGHT NOTICES</string>
-
+    <string name="finding_location">Finding Location&#x2026;</string> <!--  x2026 is ... -->
+    <string name="no_location_services_title">Location Services Warning</string>
+    <string name="no_location_services_message">Location Services should be enabled for this app to receive any location updates.</string>
+    
     <!-- Settings (Preferences) strings -->
     <string name="location_duration">Location fix duration</string>
-    <string name="location_duration_summary"></string>
-    <string name="default_desc_title">Default description text</string>
-    <string name="default_desc_on">Current date/time used</string>
-    <string name="default_desc_off">No default text entered</string>
+    <string name="location_duration_default">15</string>
+    <string name="default_desc_title">Auto-fill description</string>
+    <string name="default_desc_on">Fill in with current date and time</string>
+    <string name="default_desc_off">Leave it blank</string>
     <string name="about_settings_title">ABOUT</string>
     <string name="about_menu_title">About Travel Blog</string>
     <string name="general_settings_title">GENERAL SETTINGS</string>
 
-    <!-- Messages -->
-    <string name="help_intro">Travel Blog is an app for taking notes that are tagged with the note location and timestamp.\n
-The full <a href="https://code.google.com/p/travel-blog-android/wiki/UserGuide">User Guide</a>.\n</string>
+    <!-- Toast Messages -->
+    <string name="title_desc_missing">A title or description is required to Save entry.</string>
+    <string name="location_missing">A location is required to Save entry.</string>
+    <string name="failed_post_delete">Failed to delete blog post.</string>
+    <string name="post_deleted">Blog post deleted.</string>
+    <string name="failed_post_save">Failed to save blog post.</string>
+    <string name="post_saved">Blog post saved.</string>
+    <string name="no_files_found">No files to open.</string>
+    <string name="invalid_filename">Invalid filename.</string>
+    <string name="invalid_filename_period">Invalid filename (remove the period).</string>
+    <string name="invalid_filename_exists">File name exists, cannot overwrite.</string>
+    <string name="failed_file_create">Failed to create new file.</string>
+    <string name="map_trip_empty">Map has no locations to show.</string>
+    <string name="last_file_open_failed">Failed to open last used blog file.</string>
 
-    <string name="help_message">The New Trip menu command starts a new trip. This will be the KML filename of the blog (located in /TravelBlog/ on your SD card).\n
-Click on New Post when you want to log your location.
-This brings up a new page where you can type a name and description.  While you are typing, it finds your location by GPS (if enabled and available), or by WiFi / Cell-id (network).  If you are need to modify the location, you can later edit the location on a map.\n
-\n
-To complete, click Save or Cancel as needed.
-You can edit a post by clicking on it, and you can delete a post by long-clicking on a post and selecting the delete command.
-When editing you a given the opportunity to edit the name and description, and optionally to edit the location of your post by clicking on the location coordinates.\n
-\n
-Whenever you choose, you can view your trip on a Google map on your device by choosing Map Trip from the menu.  You can copy the KML blog file manually to do what you choose with it, or you can send it via email or wherever your device can send it to by choosing Send Trip from the menu.\n
-\n
-What works well for us is to install the Android Dropbox app, register with Dropbox, and then Send the KML file to your Dropbox public folder.  In Dropbox you can get a link to your file which you can enter into the Search Maps box in Google Maps.
-This works from either the desktop Google Maps, or the mobile Google Maps app.  You can then share this map with friends, or add it to your favourite Blogging website such as Blogger.  This way, your family, friends or colleagues can also know what you are up to.\n
-\n
-Later you can Open Trip to load old trips, or select new Trip again to start again.  Your last Trip is also loaded on start-up.  Nothing runs in the background.\n
-\nHappy travelling!\n
-\nThe Travel Blog Team</string>
+    <string name="no_location_fix">No location fix found. Using previous entry\'s location.</string>
 
-    <string name="about_message">A Travel Location Notes App<br/>\n
-<a href="https://code.google.com/p/travel-blog-android/">Source Code and Docs</a>\n
-<a href="https://play.google.com/store/apps/details?id=com.barkside.travellocblog">Google Play Store</a>\n
-Copyright 2011 Barkside Apps</string>
-
+    <string name="final_fallback_lnglat">0,51</string>
+    <string name="using_fallback_location">Location estimate failed. Using location 0,51 to initialize editor.</string>
+    
 </resources>

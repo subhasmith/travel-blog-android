@@ -3,16 +3,18 @@ package com.barkside.travellocblog;
 import java.io.File;
 import java.util.Locale;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.Menu;
@@ -32,11 +34,14 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
 
 /**
  * Main activity. Comes here from the launcher.
+ * 
+ * Using a FragmentActivity instead of Activity to call getSupportFragmentManager
+ * for the Help, About, and What's New message screens.
  *
  * Displays a list of blog entries from the last used trip file.
  */
 
-public class TravelLocBlogMain extends Activity
+public class TravelLocBlogMain extends FragmentActivity
 {
    // For logging and debugging purposes
    private static final String TAG = "TravelLocBlogMain";
@@ -50,11 +55,18 @@ public class TravelLocBlogMain extends Activity
    public static String TRIP_PATH = "/TravelBlog";
    protected static final int CONTEXTMENU_EDITITEM = 0;
    protected static final int CONTEXTMENU_DELETEITEM = 1;
-   public static final String PREFS_NAME = "MyPrefsFile";
+   
+   // Named preference file use deprecated - see SettingsActivity class comments.
+   public static final String PREFS_NAME = "MyPrefsFile"; // deprecated as of versionCode 6
+   
    private int mEditItem = 0;
    private int mDeleteItem = -1;
    private static final String KML_SUFFIX = ".kml";
    private String mFileName = "MyFirstTrip" + KML_SUFFIX;
+   
+   private boolean mShowWhatsnew = false;
+
+   
    ListView mBlogList;
 
    /* Called when the activity is first created. */
@@ -87,40 +99,69 @@ public class TravelLocBlogMain extends Activity
       });
 
 
-      /* Attempt to open last used blog file */
-      SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
-      mFileName = settings.getString("defaultTrip",
-            getString(R.string.default_trip));
-      if ((mBlogData.openBlog(mFileName) == false)
-            && (settings.contains("defaultTrip") == true))
+      /* Attempt to open last used blog file. Try new default prefs, and deprecated prefs too */
+      SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
+      mFileName = settings.getString(SettingsActivity.LAST_OPENED_TRIP_KEY, null);
+      boolean has_file_name = settings.contains(SettingsActivity.LAST_OPENED_TRIP_KEY);
+      if (mFileName == null)
       {
-         Toast toast = Toast.makeText(this,
-               "Failed to open last used blog file", Toast.LENGTH_LONG);
-         toast.show();
+         // versionCode 5 (version 1.7) or older
+         settings = getSharedPreferences(PREFS_NAME, 0);
+         mFileName = settings.getString("defaultTrip", null);
+         has_file_name = settings.contains("defaultTrip");
+      }
+      if (mFileName == null)
+      {
+         mFileName = getString(R.string.default_trip);
+      }
+
+      if ((mBlogData.openBlog(mFileName) == false) && has_file_name)
+      {
+         Toast.makeText(this, R.string.last_file_open_failed,
+               Toast.LENGTH_SHORT).show();
       }
       mNewDialog = new Dialog(this);
       initList();
       
+      // All other settings always use standard default settings location
+      settings = PreferenceManager.getDefaultSharedPreferences(this);
+
+      // Check if app got updated after the last time it was run
+      int lastVersionCode = settings.getInt(SettingsActivity.LAST_VERSION_USED_KEY, -1);
+      int versionCode = getVersionCode();
+      SharedPreferences.Editor editor = settings.edit();
+      // Save new version code to preferences
+      if (lastVersionCode != versionCode)
+      {
+         editor.putInt(SettingsActivity.LAST_VERSION_USED_KEY, versionCode);
+      }
+      if (lastVersionCode < versionCode)
+      {
+         mShowWhatsnew = true;
+      }
+
       // Settings menu: These two lines are working around an android bug to set boolean defaults
       // http://code.google.com/p/android/issues/detail?id=6641
-      SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
       String key = SettingsActivity.DEFAULT_DESC_ON_KEY;
-      prefs.edit().putBoolean(key, prefs.getBoolean(key, true)).commit();
- 
+      editor.putBoolean(key, settings.getBoolean(key, true));
+
+      // Commit the edits!
+      editor.commit();
+
    }
 
    /* Called to edit a blog post, by passing extras in a bundle */
    private void editBlogEntry(int index)
    {
-      // Log.d(TAG, "Edit Log Entry "+index);
       if ((index >= mBlogData.getMaxBlogElements()) || (index < 0))
       {
+         Log.d(TAG, "Edit Log Entry illegal: " + index);
          return;
       }
       BlogElement blog = mBlogData.getBlogElement(index);
       Intent i = new Intent(this, EditBlogElement.class);
       Bundle b = new Bundle();
-      b.putString("BLOG_NAME", blog.name);
+      b.putString("BLOG_NAME", blog.title);
       b.putString("BLOG_DESCRIPTION", blog.description);
       b.putString("BLOG_LOCATION", blog.location);
       b.putString("BLOG_TIMESTAMP", blog.timeStamp);
@@ -130,14 +171,28 @@ public class TravelLocBlogMain extends Activity
       startActivityForResult(i, EDIT_BLOG_ENTRY);
    }
 
-   /* new blog post has no extras */
+   /* new blog post passes in a fallback location in the  extras,
+    * to be used if no location found
+    */
    private void newBlogEntry()
    {
+      int index = mBlogData.getMaxBlogElements() - 1;
+      String fallbackLngLat = "";
+      if (index >= 0)
+      {
+         BlogElement blog = mBlogData.getBlogElement(index);
+         fallbackLngLat = blog.location;
+      }
+      else
+      {
+         fallbackLngLat = getString(R.string.final_fallback_lnglat);
+      }
+
       Intent i = new Intent(this, EditBlogElement.class);
       Bundle b = new Bundle();
       b.putString("BLOG_NAME", null);
       b.putString("BLOG_DESCRIPTION", null);
-      b.putString("BLOG_LOCATION", null);
+      b.putString("BLOG_LOCATION", fallbackLngLat);
       b.putString("BLOG_TIMESTAMP", null);
       i.putExtras(b);
       i.setAction("com.barkside.travellocblog.NEW_BLOG_ENTRY");
@@ -145,6 +200,42 @@ public class TravelLocBlogMain extends Activity
       startActivityForResult(i, NEW_BLOG_ENTRY);
    }
 
+   
+   @Override
+   protected void onResume() {
+      super.onResume();
+      
+      // If we are starting an updated version of the app, show the what's new blurb
+      // TODO: this seems the way examples on the web show it, but need to confirm if right.
+      Log.d(TAG, "onResume mShowWhatsnew = " + mShowWhatsnew);
+      if (true || mShowWhatsnew) // TODO TESTING DELETE
+      {
+         FragmentManager fm = getSupportFragmentManager();
+         MessagesDialog whatsnewDialog = new MessagesDialog();
+         Bundle args = new Bundle();
+         args.putString(MessagesDialog.MESSAGE1_ASSET_ARG, "release_notes.txt"); // in assets/ folder
+         args.putString(MessagesDialog.MESSAGE_TITLE_ARG, "What's New");
+         whatsnewDialog.setArguments(args);
+         whatsnewDialog.show(fm, "What's New Dialog");
+         mShowWhatsnew = false; //don't show this dialog on any subsequent onResume
+      }
+      
+   }
+
+   public int getVersionCode()
+   {
+      PackageManager packageManager = getPackageManager();
+      String packageName = getPackageName();
+
+      int versionCode = 0;
+
+      try {
+         versionCode = packageManager.getPackageInfo(packageName, 0).versionCode;
+      } catch (PackageManager.NameNotFoundException e) {
+          Log.w(TAG, "Could not lookup application version number code");
+      }
+      return versionCode;
+   }
    /*
     * Used to refresh the blog list by running through the mBlogData data
     * structure
@@ -156,7 +247,7 @@ public class TravelLocBlogMain extends Activity
       for (int i = 0; i < mBlogData.getMaxBlogElements(); i++)
       {
          BlogElement blog = mBlogData.getBlogElement(mirrorElement(i));
-         adapter.addItem(new BlogListData(blog.name, blog.description));
+         adapter.addItem(new BlogListData(blog.title, blog.description));
       }
       mBlogList.setAdapter(adapter);
       TextView tv2 = (TextView) findViewById(R.id.trip_name);
@@ -237,15 +328,13 @@ public class TravelLocBlogMain extends Activity
       {
          if (mBlogData.deleteBlogElement(mDeleteItem) == false)
          {
-            Toast toast = Toast.makeText(this, "Failed to Delete Blog Post",
-                  Toast.LENGTH_SHORT);
-            toast.show();
+            Toast.makeText(this, R.string.failed_post_delete,
+                  Toast.LENGTH_SHORT).show();
          }
          else
          {
-            Toast toast = Toast.makeText(this, "Blog Post Deleted",
-                  Toast.LENGTH_SHORT);
-            toast.show();
+            Toast.makeText(this, R.string.post_deleted,
+                  Toast.LENGTH_SHORT).show();
          }
          mDeleteItem = -1;
          refreshList();
@@ -302,48 +391,31 @@ public class TravelLocBlogMain extends Activity
       {
          Bundle extras = data.getExtras();
 
-         blog.name = extras.getString("BLOG_NAME");
+         blog.title = extras.getString("BLOG_NAME");
          blog.description = extras.getString("BLOG_DESCRIPTION");
          blog.location = extras.getString("BLOG_LOCATION");
          blog.timeStamp = extras.getString("BLOG_TIMESTAMP");
       }
 
-      // Log.d("TRAVEL_DEBUG", "resultCode = " + resultCode + " requestCode = "
-      // + requestCode);
+      // Log.d(TAG, "resultCode = " + resultCode + " requestCode = " + requestCode);
+      Log.d(TAG, "Edit complete, saving location " + blog.location);
 
+      int editItem = (requestCode == EDIT_BLOG_ENTRY) ? mEditItem : -1;
       switch (requestCode)
       {
          case NEW_BLOG_ENTRY:
-            if (resultCode == RESULT_OK)
-            {
-               if (mBlogData.saveBlogElement(blog, -1) == false)
-               {
-                  Toast toast = Toast.makeText(this, "Blog Post Save Failed",
-                        Toast.LENGTH_SHORT);
-                  toast.show();
-               }
-               else
-               {
-                  Toast toast = Toast.makeText(this, "Blog Post Saved",
-                        Toast.LENGTH_SHORT);
-                  toast.show();
-               }
-            }
-            break;
          case EDIT_BLOG_ENTRY:
             if (resultCode == RESULT_OK)
             {
-               if (mBlogData.saveBlogElement(blog, mEditItem) == false)
+               if (mBlogData.saveBlogElement(blog, editItem) == false)
                {
-                  Toast toast = Toast.makeText(this, "Blog Post Save Failed",
-                        Toast.LENGTH_SHORT);
-                  toast.show();
+                  Toast.makeText(this, R.string.failed_post_save,
+                        Toast.LENGTH_SHORT).show();
                }
                else
                {
-                  Toast toast = Toast.makeText(this, "Blog Post Saved",
-                        Toast.LENGTH_SHORT);
-                  toast.show();
+                  Toast.makeText(this, R.string.post_saved,
+                        Toast.LENGTH_SHORT).show();
                }
             }
             break;
@@ -377,7 +449,14 @@ public class TravelLocBlogMain extends Activity
             mapTrip();
             return true;
          case R.id.help:
-            startActivity(new Intent(this, HelpActivity.class));
+            FragmentManager fm = getSupportFragmentManager();
+            MessagesDialog helpDialog = new MessagesDialog();
+            Bundle args = new Bundle();
+            args.putString(MessagesDialog.MESSAGE1_ASSET_ARG, "help.txt"); // in assets/ folder
+            args.putString(MessagesDialog.MESSAGE2_ASSET_ARG, "release_notes.txt");
+            args.putString(MessagesDialog.MESSAGE_TITLE_ARG, "Help");
+            helpDialog.setArguments(args);
+            helpDialog.show(fm, "Help Dialog");
             return true;
          case R.id.trip_info:
             showTripInfo();
@@ -458,16 +537,14 @@ public class TravelLocBlogMain extends Activity
 
       if (mFileList == null)
       {
-         Toast toast = Toast.makeText(this, "No files to open",
-               Toast.LENGTH_SHORT);
-         toast.show();
+         Toast.makeText(this, R.string.no_files_found,
+               Toast.LENGTH_SHORT).show();
          return;
       }
       if (mFileList.length == 0)
       {
-         Toast toast = Toast.makeText(this, "No files to open",
-               Toast.LENGTH_SHORT);
-         toast.show();
+         Toast.makeText(this, R.string.no_files_found,
+               Toast.LENGTH_SHORT).show();
          return;
       }
 
@@ -494,9 +571,9 @@ public class TravelLocBlogMain extends Activity
 
    void setDefaultTrip(String file)
    {
-      SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+      SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
       SharedPreferences.Editor editor = settings.edit();
-      editor.putString("defaultTrip", file);
+      editor.putString(SettingsActivity.LAST_OPENED_TRIP_KEY, file);
       editor.commit();
    }
 
@@ -530,34 +607,29 @@ public class TravelLocBlogMain extends Activity
       // Log.d(TAG, "new file: " + str);
       if (str.length() == 0)
       {
-         Toast toast = Toast.makeText(this, "Invalid filename",
-               Toast.LENGTH_SHORT);
-         toast.show();
+         Toast.makeText(this, R.string.invalid_filename,
+               Toast.LENGTH_SHORT).show();
          return;
       }
       if (str.contains(".") == true)
       {
-         Toast toast = Toast.makeText(this,
-               "Invalid filename (remove the period)", Toast.LENGTH_SHORT);
-         toast.show();
+         Toast.makeText(this, R.string.invalid_filename_period,
+               Toast.LENGTH_SHORT).show();
          return;
       }
       File newFile = new File(Environment.getExternalStorageDirectory()
             + TRIP_PATH + "/" + str + KML_SUFFIX);
       if (newFile.exists() == true)
       {
-         Toast toast = Toast.makeText(this, "File already exists)",
-               Toast.LENGTH_SHORT);
-         toast.show();
+         Toast.makeText(this, R.string.invalid_filename_exists,
+               Toast.LENGTH_SHORT).show();
          return;
       }
       mNewDialog.cancel();
       if (mBlogData.newBlog(str + KML_SUFFIX) == false)
       {
-         Toast toast = Toast.makeText(this,
-               "Failed to create new file (SD card problem?)",
-               Toast.LENGTH_SHORT);
-         toast.show();
+         Toast.makeText(this, R.string.failed_file_create,
+               Toast.LENGTH_SHORT).show();
          return;
       }
       mFileName = str + KML_SUFFIX;
@@ -617,9 +689,8 @@ public class TravelLocBlogMain extends Activity
       }
       else
       {
-         Toast toast = Toast
-               .makeText(this, "Nothing to map", Toast.LENGTH_LONG);
-         toast.show();
+         Toast.makeText(this, R.string.map_trip_empty,
+               Toast.LENGTH_SHORT).show();
       }
    }
 

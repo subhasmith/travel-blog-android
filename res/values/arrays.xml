@@ -2,11 +2,12 @@
 <resources>
 
     <string-array name="location_duration_entries">
-        <item>10 seconds</item>
         <item>15 seconds</item>
-        <item>20 seconds</item>
         <item>30 seconds</item>
-    </string-array>
+        <item>60 seconds</item>
+        <item>15 seconds after first update</item>
+        <item>No auto-off</item>
+        </string-array>
 
     <!--
     http://code.google.com/p/android/issues/detail?id=2096
@@ -15,10 +16,11 @@
     -->
 
     <string-array name="location_duration_values">
-        <item>10</item>
         <item>15</item> <!--  this is used as defaultValue in preferences.xml -->
-        <item>20</item>
         <item>30</item>
+        <item>60</item>
+        <item>-15</item>
+        <item>-9999</item>
     </string-array>
 
 </resources>

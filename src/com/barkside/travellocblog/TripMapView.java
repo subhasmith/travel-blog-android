@@ -30,6 +30,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
@@ -140,8 +141,8 @@ public class TripMapView extends FragmentActivity {
 
       for (int i = 0; i < mBlogData.getMaxBlogElements(); ++i) {
          BlogElement blog = mBlogData.getBlogElement(i);
-         if ((blog.name == null) || (blog.location == null)
-               || (blog.location.length() == 0) || (blog.name.length() == 0)) {
+         if ((blog.title == null) || (blog.location == null)
+               || (blog.location.length() == 0) || (blog.title.length() == 0)) {
             continue;
          }
          String[] temp;
@@ -164,7 +165,7 @@ public class TripMapView extends FragmentActivity {
          bounds.include(latlng);
          polylineOptions.add(latlng);
 
-         mMap.addMarker(new MarkerOptions().position(latlng).title(blog.name)
+         mMap.addMarker(new MarkerOptions().position(latlng).title(blog.title)
                .snippet(blog.description).icon(icon));
          icon = mIcon; // after the first icon is used, then use normal marker icon
       }
@@ -180,8 +181,7 @@ public class TripMapView extends FragmentActivity {
       if (mapView.getViewTreeObserver().isAlive()) {
          mapView.getViewTreeObserver().addOnGlobalLayoutListener(
                new OnGlobalLayoutListener() {
-                  // @SuppressWarnings("deprecation") // We use the new method
-                  // when supported
+                  @SuppressWarnings("deprecation") // We use the new method when supported
                   @SuppressLint("NewApi")
                   // We check which build version we are using.
                   @Override
@@ -190,13 +190,12 @@ public class TripMapView extends FragmentActivity {
                       * Looks like don't have access to Build.VERSION_CODES.JELLY_BEAN
                       * for this project since we are targeting older GINGERBREAD,
                       * so just use the old API.
-                      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+                      */
+                     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
                         mapView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
                       } else {
                         mapView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                       }
-                      */
-                     mapView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
                      mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(
                            boundsB, 50));
                   }
@@ -204,4 +203,4 @@ public class TripMapView extends FragmentActivity {
       }
    }
 
-      }
+}

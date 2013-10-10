@@ -36,7 +36,7 @@ public class AboutActivity extends Activity
       
       // App name and version number
       TextView tv = (TextView) findViewById(R.id.about_name_version);
-      String name = getString(R.string.about_name_version_format, getString(R.string.app_name),
+      String name = getString(R.string.app_name_version_format, getString(R.string.app_name),
                version);
       tv.setText(name);
 

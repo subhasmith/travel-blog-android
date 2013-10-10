@@ -42,12 +42,12 @@
         </LinearLayout>
 
         <EditText
-            android:id="@+id/edit_name"
+            android:id="@+id/edit_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_below="@id/button_box"
-            android:hint="@string/note_name_hint"
+            android:hint="@string/note_title_hint"
             android:textStyle="bold"
             android:inputType="text|textCapWords|textMultiLine"
             android:minLines="2" >
@@ -58,7 +58,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
-            android:layout_below="@id/edit_name"
+            android:layout_below="@id/edit_title"
             android:hint="@string/note_desc_hint"
             android:gravity="top"
             android:inputType="text|textCapSentences|textMultiLine"

@@ -36,7 +36,7 @@
     </LinearLayout>
     
     <TextView
-        android:id="@+id/show_name"
+        android:id="@+id/show_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ellipsize="end"

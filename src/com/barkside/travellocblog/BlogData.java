@@ -77,17 +77,13 @@ public class BlogData
    /* updates element if index valid, otherwise creates new element if index -1 */
    public Boolean saveBlogElement(BlogElement blog, int index)
    {
-      if ((blog.location == null) || (blog.location.length() == 0)
-            || (blog.name == null) || (blog.name.length() == 0))
+      if (!blog.valid())
       {
          return false;
       }
-      String str = blog.name.trim();
-      blog.name = str;
-      str = blog.description.trim();
-      blog.description = str;
-      str = blog.location.trim();
-      blog.location = str;
+      
+      // keep user-entered strings unchanged - so no trimming on save of the
+      // text fields such as blog.description, etc
 
       if (index == -1)
       {
@@ -215,7 +211,7 @@ public class BlogData
                String name = property.getNodeName();
                if (name.equalsIgnoreCase("name"))
                {
-                  blog.name = property.getFirstChild().getNodeValue();
+                  blog.title = property.getFirstChild().getNodeValue();
                }
                else if (name.equalsIgnoreCase("description"))
                {
@@ -419,11 +415,11 @@ public class BlogData
                {
                   serializer.startTag(null, "Placemark");
                }
-               if ((blog.name != null) && (j == 0))
+               if ((blog.title != null) && (j == 0))
                {
                   serializer.startTag(null, "name");
                   // write some text inside <name>
-                  serializer.text(blog.name);
+                  serializer.text(blog.title);
                   serializer.endTag(null, "name");
                }
                if ((blog.description != null) && (j == 0))
@@ -516,7 +512,7 @@ public class BlogData
 class BlogElement
 {
    public String description;
-   public String name;
+   public String title;
    public String location;
    public String timeStamp;
    static String EMPTY_STRING = "";
@@ -527,12 +523,33 @@ class BlogElement
        * Many parts of code expect string for these fields. And in error cases such as
        * when an foreign .kml file is loaded, having null here can cause the app to never
        * be able to start, crashes on trying to load the bad file.
-       * So, make these variables a string so a string call like trim() or split() won't
+       * So, make these variables non-null so a string call like trim() or split() won't
        * terminate the app.
        */
       this.description = EMPTY_STRING;
-      this.name = EMPTY_STRING;
+      this.title = EMPTY_STRING;
       this.location = EMPTY_STRING;
       this.timeStamp = EMPTY_STRING;
    }
+   /**
+    * Given a BlogElement, check if it has valid data, can be saved, etc.
+    * @param blog the BlogElement object to check
+    * @return true if object is ok and can be saved, etc
+    */
+   public Boolean valid()
+   {
+      if ((this.location == null) || (this.location.length() == 0)) {
+         // Must have a location
+         return false;
+      }
+      if ((this.title == null) || (this.description == null)) {
+         return false;
+      }
+      if ((this.title.length() == 0) && (this.description.length() == 0)) {
+         // Both strings can't be empty
+         return false;
+      }
+      return true;
+   }
+
 }

@@ -16,7 +16,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 /**
  * EditLocation activity shows a screen that contains a map with a draggable marker
@@ -40,12 +39,14 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
 
    // Initial map zoom level (2.0 to 21.0) for showing the location on the map
    public static final float INITIAL_MAP_ZOOM = 16.0f;
+   // Initial map zoom for the case where we did not get a specified starting location
+   // Shows a much larger area so user can easily pan the map to required region.
+   public static final float INITIAL_MAP_ZOOM_FALLBACK = 6.0f;
 
    private LatLng mNewLatLng = null;
    private LatLng mOldLatLng = null;
    
-   private String mOldTime = null;
-   private String mNoteName = null; // Blog Element is a Note, and the Name of that field.
+   private String mNotetitle = null; // Blog Element is a Note, and the Name of that field.
 
    private GoogleMap mMap;
    private Marker mMapMarker;
@@ -63,13 +64,18 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
       if (Intent.ACTION_EDIT.equals(action))
       {
          Bundle extras = intent.getExtras();
-         mNoteName = extras.getString("BLOG_NAME");
-         mOldTime = extras.getString("BLOG_TIMESTAMP");
-         mOldLatLng = extras.getParcelable("BLOG_LATLNG");
+         mNotetitle = extras.getString("BLOG_NAME");
+         mOldLatLng = extras.getParcelable("BLOG_LATLNG"); // may be null
          mNewLatLng = mOldLatLng;
+         if (mNewLatLng == null)
+         {
+            // This should rarely happen, caller always send in a starting location
+            // But if it does, we have to display the map and the marker anyway
+            mNewLatLng = stringToLatLng(getString(R.string.final_fallback_lnglat));
+         }
 
-         TextView tv = (TextView) findViewById(R.id.show_name);
-         tv.setText(mNoteName);
+         TextView tv = (TextView) findViewById(R.id.show_title);
+         tv.setText(mNotetitle);
          
          setUpMapIfNeeded();
       }
@@ -135,23 +141,13 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
       switch (view.getId()) {
       case R.id.save_button:
 
-         if (mNewLatLng == null)
-         {
-            setResult(RESULT_CANCELED);
-            // Internal program error?
-            Toast toast = Toast.makeText(this, "Failed: got no location", Toast.LENGTH_SHORT);
-            toast.show();
-            break;
-         }
-
          useNewPosition(mMapMarker);
 
          Intent intent = new Intent();
          Bundle extras = new Bundle();
-         extras.putString("BLOG_NAME", mNoteName);
+         extras.putString("BLOG_NAME", mNotetitle);
          extras.putParcelable("BLOG_LATLNG", mNewLatLng);
          Log.d(TAG, "done with location edit " + mNewLatLng);
-         extras.putString("BLOG_TIMESTAMP", mOldTime);
          intent.putExtras(extras);
          setResult(RESULT_OK, intent);
          break;
@@ -214,7 +210,7 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
             uis.setZoomControlsEnabled(true);
 
             /**
-             * Move the marker to the current mBestLocation. Creates marker if no marker
+             * Move the marker to the current location. Creates marker if no marker
              * added yet.
              * NOTE: should only be called to initialize the map, after that,
              * user moves the marker manually as desired. Otherwise, if map is moved too often,
@@ -222,15 +218,16 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
              */
             if (mMapMarker == null)
             {
-               mMapMarker = mMap.addMarker(new MarkerOptions().position(mOldLatLng).draggable(true));
+               mMapMarker = mMap.addMarker(new MarkerOptions().position(mNewLatLng).draggable(true));
             }
 
-            Log.d(TAG, "setup map: setting marker " + mOldLatLng);
+            Log.d(TAG, "setup map: setting marker " + mNewLatLng);
 
-            mMapMarker.setPosition(mOldLatLng);
+            mMapMarker.setPosition(mNewLatLng);
             // Move/animate the camera to that position.
             // animateCamera takes up time, so just use moveCamera which seems better here.
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mOldLatLng, INITIAL_MAP_ZOOM));
+            float zoom = (mOldLatLng == null) ? INITIAL_MAP_ZOOM_FALLBACK : INITIAL_MAP_ZOOM;
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mNewLatLng, zoom));
             
             useNewPosition(mMapMarker);
          }
