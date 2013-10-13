@@ -511,26 +511,18 @@ public class BlogData
 /* The Blog Element used in the array */
 class BlogElement
 {
-   public String description;
-   public String title;
-   public String location;
-   public String timeStamp;
-   static String EMPTY_STRING = "";
+   public String description = "";
+   public String title = "";
+   public String location = "";
+   public String timeStamp = "";
+   /**
+    * Many parts of code expect string for these fields. And in error cases such as
+    * when an foreign .kml file is loaded, having null here can cause the app to never
+    * be able to start, crashes on trying to load the bad file.
+    * So, make these variables non-null so a string call like trim() or split() won't
+    * terminate the app.
+    */
 
-   public BlogElement()
-   {
-      /**
-       * Many parts of code expect string for these fields. And in error cases such as
-       * when an foreign .kml file is loaded, having null here can cause the app to never
-       * be able to start, crashes on trying to load the bad file.
-       * So, make these variables non-null so a string call like trim() or split() won't
-       * terminate the app.
-       */
-      this.description = EMPTY_STRING;
-      this.title = EMPTY_STRING;
-      this.location = EMPTY_STRING;
-      this.timeStamp = EMPTY_STRING;
-   }
    /**
     * Given a BlogElement, check if it has valid data, can be saved, etc.
     * @param blog the BlogElement object to check

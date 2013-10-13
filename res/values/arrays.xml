@@ -4,7 +4,6 @@
     <string-array name="location_duration_entries">
         <item>15 seconds</item>
         <item>30 seconds</item>
-        <item>60 seconds</item>
         <item>15 seconds after first update</item>
         <item>No auto-off</item>
         </string-array>
@@ -16,11 +15,10 @@
     -->
 
     <string-array name="location_duration_values">
-        <item>15</item> <!--  this is used as defaultValue in preferences.xml -->
+        <item>15</item> 
         <item>30</item>
-        <item>60</item>
-        <item>-15</item>
-        <item>-9999</item>
+        <item>-15</item>  <!-- @string/location_duration_default -->
+        <item>-9999</item> <!--  should match mNoAutOff in LocationUpdates class -->
     </string-array>
 
 </resources>

@@ -35,10 +35,10 @@ public class AboutActivity extends Activity
       }
       
       // App name and version number
-      TextView tv = (TextView) findViewById(R.id.about_name_version);
-      String name = getString(R.string.app_name_version_format, getString(R.string.app_name),
-               version);
-      tv.setText(name);
+      TextView tv = (TextView) findViewById(R.id.app_name);
+      tv.setText(R.string.app_name);
+      tv = (TextView) findViewById(R.id.app_version);
+      tv.setText(version);
 
       // Our main about message with links to Travel Blog code, Play Store, Mailing List, etc
       tv = (TextView) findViewById(R.id.about_message);

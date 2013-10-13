@@ -185,7 +185,9 @@ public class TravelLocBlogMain extends FragmentActivity
       }
       else
       {
-         fallbackLngLat = getString(R.string.final_fallback_lnglat);
+         // No fallback here - send in "". The EditLocation call will then
+         // display appropriate message and zoom levels, and use final_fallback_lnglat
+         // fallbackLngLat = getString(R.string.final_fallback_lnglat);
       }
 
       Intent i = new Intent(this, EditBlogElement.class);
@@ -206,15 +208,13 @@ public class TravelLocBlogMain extends FragmentActivity
       super.onResume();
       
       // If we are starting an updated version of the app, show the what's new blurb
-      // TODO: this seems the way examples on the web show it, but need to confirm if right.
-      Log.d(TAG, "onResume mShowWhatsnew = " + mShowWhatsnew);
-      if (true || mShowWhatsnew) // TODO TESTING DELETE
+      if (mShowWhatsnew)
       {
          FragmentManager fm = getSupportFragmentManager();
          MessagesDialog whatsnewDialog = new MessagesDialog();
          Bundle args = new Bundle();
-         args.putString(MessagesDialog.MESSAGE1_ASSET_ARG, "release_notes.txt"); // in assets/ folder
-         args.putString(MessagesDialog.MESSAGE_TITLE_ARG, "What's New");
+         args.putInt(MessagesDialog.MESSAGE1_STRING_ID_ARG, R.string.whatsnew_message);
+         args.putInt(MessagesDialog.TITLE_STRING_ID_ARG, R.string.whatsnew_title);
          whatsnewDialog.setArguments(args);
          whatsnewDialog.show(fm, "What's New Dialog");
          mShowWhatsnew = false; //don't show this dialog on any subsequent onResume
@@ -452,9 +452,9 @@ public class TravelLocBlogMain extends FragmentActivity
             FragmentManager fm = getSupportFragmentManager();
             MessagesDialog helpDialog = new MessagesDialog();
             Bundle args = new Bundle();
-            args.putString(MessagesDialog.MESSAGE1_ASSET_ARG, "help.txt"); // in assets/ folder
-            args.putString(MessagesDialog.MESSAGE2_ASSET_ARG, "release_notes.txt");
-            args.putString(MessagesDialog.MESSAGE_TITLE_ARG, "Help");
+            args.putInt(MessagesDialog.MESSAGE1_STRING_ID_ARG, R.string.help_message);
+            args.putInt(MessagesDialog.MESSAGE2_STRING_ID_ARG, R.string.whatsnew_message);
+            args.putInt(MessagesDialog.TITLE_STRING_ID_ARG, R.string.help_title);
             helpDialog.setArguments(args);
             helpDialog.show(fm, "Help Dialog");
             return true;
@@ -557,6 +557,7 @@ public class TravelLocBlogMain extends FragmentActivity
                {
                   dialog.dismiss();
                   openTripOnClick(mFileList[item].toString());
+                  
                }
             });
       builder.create();

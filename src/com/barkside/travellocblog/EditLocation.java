@@ -67,6 +67,15 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
          mNotetitle = extras.getString("BLOG_NAME");
          mOldLatLng = extras.getParcelable("BLOG_LATLNG"); // may be null
          mNewLatLng = mOldLatLng;
+         
+         // Restore UI state from the savedInstanceState.
+         // This bundle is also been passed to onRestoreInstanceState, called after onCreate.
+         if (savedInstanceState != null)
+         {
+            Log.d(TAG, "restore instance state");
+            mNewLatLng = savedInstanceState.getParcelable("mNewLatLng");
+         }
+         
          if (mNewLatLng == null)
          {
             // This should rarely happen, caller always send in a starting location
@@ -227,11 +236,30 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
             // Move/animate the camera to that position.
             // animateCamera takes up time, so just use moveCamera which seems better here.
             float zoom = (mOldLatLng == null) ? INITIAL_MAP_ZOOM_FALLBACK : INITIAL_MAP_ZOOM;
+            Log.d(TAG, "Using zoom " + zoom);
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mNewLatLng, zoom));
             
             useNewPosition(mMapMarker);
          }
       }
+   }
+
+   /**
+    * We need to survive a device orientation change. Android will completely destroy
+    * and recreate this activity.
+    * If we don't remember mNewLatLng for example, we may restart this activity and
+    * forget that the user had already moved it to a new location and mOldLatLng is not
+    * the right initial value.
+    */
+   
+   @Override
+   public void onSaveInstanceState(Bundle savedInstanceState) {
+     super.onSaveInstanceState(savedInstanceState);
+     Log.d(TAG, "save instance state");
+     // Save UI state changes to the savedInstanceState.
+     // This bundle will be passed to onCreate if the process is
+     // killed and restarted.
+     savedInstanceState.putParcelable("mNewLatLng", mNewLatLng);
    }
 
 

@@ -16,7 +16,6 @@
 
 package com.barkside.travellocblog;
 
-
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesClient;
 import com.google.android.gms.common.GooglePlayServicesUtil;
@@ -34,6 +33,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -142,13 +142,14 @@ public abstract class LocationUpdates extends FragmentActivity implements
     
     public final static int mNoAutoOff = -9999; // should match @location_duration_values array
     private int mUpdatesDurationSecs = mNoAutoOff;
+    private long mExpirationTime = 0; // setExpirationTime for LocationRequest
     
     private final Handler timerHandler = new Handler();
     private final Runnable timerEvent = new Runnable() {
         @Override
         public void run() {
             Log.d(TAG, "timer triggered to stop location updates");
-            stopPeriodicUpdates(); 
+            timerCancelUpdates(); 
         }
     };
 
@@ -198,6 +199,11 @@ public abstract class LocationUpdates extends FragmentActivity implements
         // Note that location updates are off until the concrete class turns them on
         mUpdatesRequested = false;
 
+        mExpirationTime = 0;
+        if (savedInstanceState != null) {
+           mExpirationTime = savedInstanceState.getLong("mExpirationTime");
+        }
+
         /*
          * Create a new location client, using the enclosing class to
          * handle callbacks.
@@ -218,17 +224,44 @@ public abstract class LocationUpdates extends FragmentActivity implements
     protected void enableLocationUpdates(int durationSecs) {
         mUpdatesRequested = true;
         mUpdatesDurationSecs = durationSecs;
+
+        // Compute the expiration time as now + durationSecs.
+        // We don't use durationSecs if mExpirationTime is already known - which happens
+        // when this activity is recreated on a screen orientation change, etc.
+        if (mUpdatesDurationSecs != mNoAutoOff && mExpirationTime == 0) {
+           long durationMillis = Math.abs(durationSecs) * MILLISECONDS_PER_SECOND;
+           mExpirationTime = SystemClock.uptimeMillis() + durationMillis;
+        }
         
         if (durationSecs > 0) {
            Log.d(TAG, "Starting location timer for seconds: " + durationSecs);
+           Log.d(TAG, "Starting location timer to time: " + mExpirationTime);
+
+           // Location Updates are to expire at given time
+           // Since this is exact time, this is not affected by screen orientation changes,
+           // it will not restart timer. This will be affected if phone goes to sleep, since
+           // uptimeMillis does not advance in that case. If mExpirationTime is less than
+           // current uptimeMillis, it means no location updates will be received.
+           //
            // Since we may be called multiple times in case caller has to turn on/off location
            // updates multiple times, for each enable call we set the time again, and
            // we make sure to remove old callbacks before we add a new one.
            timerHandler.removeCallbacks(timerEvent);
-           timerHandler.postDelayed(timerEvent, durationSecs * MILLISECONDS_PER_SECOND);
+           timerHandler.postAtTime(timerEvent, mExpirationTime);
+
+           // mLocationRequest.setExpirationDuration(durationSecs * MILLISECONDS_PER_SECOND); 
            // Not using setExpirationDuration since we may be called multiple times, and
            // need to keep resetting the duration, which can't be done with setExpirationDuration
-           // mLocationRequest.setExpirationDuration(durationSecs * MILLISECONDS_PER_SECOND); 
+           // More importantly, we need to know when the timer has stopped, so we can update
+           // the location, or print a message, as is done in the run() method.
+
+           if (mLocationClient.isConnected()) {
+              // Most likely we have not received a onConnected event but if we have,
+              // we need to start up the updates again, in case they are no longer active.
+              // This can be called multiple times - if called again, will just replace
+              // the old listener with "this" object as per the API doc.
+              mLocationClient.requestLocationUpdates(mLocationRequest, this);
+           }
         }
     }
     
@@ -418,6 +451,32 @@ public abstract class LocationUpdates extends FragmentActivity implements
     }
 
     /**
+     * Stop periodic updates as a result of timer firing.
+     * This can be also defined in the subclass to display appropriate messages if location
+     * has still not been found.
+     */
+    protected void timerCancelUpdates() {
+       stopPeriodicUpdates();
+    }
+
+    /**
+     * We need to survive a device orientation change. Android will completely destroy
+     * and recreate this activity.
+     * If we don't remember mExpirationTime for example, we may restart this activity and
+     * forget that the timer had been already set previously.
+     */
+    
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+      super.onSaveInstanceState(savedInstanceState);
+      Log.d(TAG, "save instance state");
+      // Save UI state changes to the savedInstanceState.
+      // This bundle will be passed to onCreate if the process is
+      // killed and restarted.
+      savedInstanceState.putLong("mExpirationTime", mExpirationTime);
+    }
+
+    /**
      * Get the address of the current location, using reverse geocoding. This only works if
      * a geocoding service is available.
      * NOT USED YET
@@ -525,7 +584,7 @@ public abstract class LocationUpdates extends FragmentActivity implements
        int durationSecs = mUpdatesDurationSecs; 
        if (durationSecs < 0 && durationSecs != mNoAutoOff) {
           timerHandler.removeCallbacks(timerEvent);
-          timerHandler.postDelayed(timerEvent, (- durationSecs) * MILLISECONDS_PER_SECOND);
+          timerHandler.postAtTime(timerEvent, mExpirationTime);
           mUpdatesDurationSecs = 0; // reset it since we only need to set timer once
        }
     }
@@ -694,9 +753,9 @@ public abstract class LocationUpdates extends FragmentActivity implements
 
             // Turn off the progress bar
             mActivityIndicator.setVisibility(View.GONE);
-
+            
             // Set the address in the UI
-            // TODO: when geoCoding is needed, figure out how to send this data to the subclass.
+            // when geoCoding is needed, figure out how to send this data to the subclass.
             // mAddress.setText(address);
         }
     }
@@ -949,9 +1008,12 @@ public abstract class LocationUpdates extends FragmentActivity implements
        LocationManager locationManager = (LocationManager)
              getSystemService(Context.LOCATION_SERVICE);
 
-       List<String> allProviders = locationManager.getProviders(true);
-       Log.d(TAG, "Enabled providers: " + allProviders);
-       return (allProviders.size() > 0);
+       // Was checking for non-empty list locationManager.getProviders(true) but
+       // that also contains the PASSIVE provider, which may not return
+       // any location in some cases.
+       // For best performance, need both GPS and NETWORK, but for this call,
+       // will accept either one being on.
+       return (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ||
+               locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER));
     }
-
 }

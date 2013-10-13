@@ -46,12 +46,13 @@
     <string name="app_name_version_format">%1$s (Version %2$s)</string>
     <string name="about_notices_label">COPYRIGHT NOTICES</string>
     <string name="finding_location">Finding Location&#x2026;</string> <!--  x2026 is ... -->
+    <string name="found_no_location">No Location.</string>
     <string name="no_location_services_title">Location Services Warning</string>
-    <string name="no_location_services_message">Location Services should be enabled for this app to receive any location updates.</string>
+    <string name="no_location_services_message">Please turn on location access.\nGPS and Network location access is necessary for this app.</string>
     
     <!-- Settings (Preferences) strings -->
     <string name="location_duration">Location fix duration</string>
-    <string name="location_duration_default">15</string>
+    <string name="location_duration_default">-15</string>
     <string name="default_desc_title">Auto-fill description</string>
     <string name="default_desc_on">Fill in with current date and time</string>
     <string name="default_desc_off">Leave it blank</string>
@@ -74,9 +75,10 @@
     <string name="map_trip_empty">Map has no locations to show.</string>
     <string name="last_file_open_failed">Failed to open last used blog file.</string>
 
-    <string name="no_location_fix">No location fix found. Using previous entry\'s location.</string>
-
     <string name="final_fallback_lnglat">0,51</string>
+    <string name="no_location_fix_no_default">No location fix found. No previous entry. Using location 0,51.</string>
+    <string name="no_location_fix_use_previous">No location fix found. Using previous entry\'s location.</string>
+    
     <string name="using_fallback_location">Location estimate failed. Using location 0,51 to initialize editor.</string>
     
 </resources>

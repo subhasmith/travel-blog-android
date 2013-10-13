@@ -8,7 +8,8 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     android:fillViewport="true" >
 
-    <RelativeLayout
+    <LinearLayout
+        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" >
 
@@ -16,8 +17,6 @@
             android:id="@+id/button_box"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentTop="true"
             android:padding="0dp" >
 
             <Button
@@ -45,8 +44,6 @@
             android:id="@+id/edit_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_below="@id/button_box"
             android:hint="@string/note_title_hint"
             android:textStyle="bold"
             android:inputType="text|textCapWords|textMultiLine"
@@ -57,25 +54,26 @@
             android:id="@+id/edit_description"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_below="@id/edit_title"
             android:hint="@string/note_desc_hint"
             android:gravity="top"
             android:inputType="text|textCapSentences|textMultiLine"
             android:minLines="5" >
         </EditText>
 
+        <!--   android:lines="2" used below to avoid what seems like an
+        Android bug. On a Nexus 4.3, Edit Post screen in landscape view never scrolls
+        and cuts off the location if :lines is left out. New Post scrolls fine, Edit Post
+        doesn't. Putting in lines=2 shows scroll bar for both, when needed in landscape.  -->  
         <TextView
             android:id="@+id/location"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_below="@id/edit_description"
             android:background="@android:drawable/list_selector_background"
             android:clickable="true"
             android:drawableLeft="@drawable/marker_red_circle"
             android:drawablePadding="12dp"
-            android:gravity="top"
+            android:gravity="left|center_vertical"
+            android:lines="2" 
             android:onClick="editLocation"
             android:paddingBottom="12sp"
             android:paddingLeft="16sp"
@@ -87,10 +85,8 @@
         <View
 	         android:layout_width="fill_parent"
 	         android:layout_height="2dip"
-             android:layout_alignParentLeft="true"
-             android:layout_below="@id/location"
 	         android:background="#FF909090" />	  
         
-    </RelativeLayout>
+    </LinearLayout>
 
 </ScrollView>

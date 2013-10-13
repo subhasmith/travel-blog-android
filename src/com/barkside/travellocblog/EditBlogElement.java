@@ -62,6 +62,9 @@ public class EditBlogElement extends LocationUpdates
    private String mOldLngLat = null;
    private String mOldTime = null;
    
+   // Settings value
+   private int mUpdatesDuration = 0; // 0 mean no auto-off
+   
    private final int EDIT_LOCATION_REQUEST = 100;
 
    
@@ -97,6 +100,16 @@ public class EditBlogElement extends LocationUpdates
       mBestLocation = null;
       mEditedLatLng = null;
       mOldLatLng = null;
+      
+      // Restore UI state from the savedInstanceState.
+      // This bundle is also been passed to onRestoreInstanceState, called after onCreate.
+      if (savedInstanceState != null)
+      {
+         Log.d(TAG, "restore instance state");
+         mEditedLatLng = savedInstanceState.getParcelable("mEditedLatLng");
+         // No need to restore (or save) the title and description TextView fields,
+         // since the system does that automatically.
+      }
       
       Intent intent = getIntent();
       String action = intent.getAction();
@@ -149,27 +162,22 @@ public class EditBlogElement extends LocationUpdates
          tv.setSelection(tv.getText().length());
       }
 
-      Log.d(TAG, "Starting, got loc " + mOldLngLat);
       mOldLatLng = stringToLatLng(mOldLngLat);
+      Log.d(TAG, "Starting, created mOldLatLng " + mOldLatLng);
       
       this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
       
-      // Turn on a timer event to fire after a while, to turn off any updates. Can't do this
-      // in a onStart or onResume because those get called any time this activity is shown such
-      // as when we come back to this activity after completion of EditLocation activity.
-      // Since we need to start this timer only after an onConnected event, will need to create
-      // a mNeedLocationUpdates boolean in here and set it off when updates are to be turned off.
-      // All that seems unnecessary, so just a simple call below works fine.
-      if (mIsNewBlog) {
-         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-         // http://code.google.com/p/android/issues/detail?id=2096
-         // Expand ListPreference to support alternate array types
-         // so can't use int for duration, have to convert from string!
-         String selected = sharedPref.getString(SettingsActivity.LOCATION_DURATION_KEY,
-               Integer.toString(LOC_UPDATE_DURATION));
-         int duration = Integer.parseInt(selected);
-         super.enableLocationUpdates(duration);
-      }
+      // Read in settings for location updates duration
+      SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+      // http://code.google.com/p/android/issues/detail?id=2096
+      // Expand ListPreference to support alternate array types
+      // so can't use int for duration, have to convert from string!
+      String selected = sharedPref.getString(SettingsActivity.LOCATION_DURATION_KEY,
+            Integer.toString(LOC_UPDATE_DURATION));
+      mUpdatesDuration = Integer.parseInt(selected);
+
+      // Enable location updates if we have not manually edited the location
+      this.checkEnableLocationUpdates();
       
       // After all data is setup, including starting location updates, display the location
       displayLocation();
@@ -214,7 +222,7 @@ public class EditBlogElement extends LocationUpdates
       // see this because as soon as we get a onConnected message, we will display last
       // known location. The onConnected message comes in pretty fast when there was
       // a previous location on the phone. If user turns off GPS, this is not true -
-      // it may never get a onConnected event and this message will stay for ever!
+      // it may never get a onConnected event and this message will stay until timer expires.
       if (mIsNewBlog && mBestLocation == null && updatesRequested())
       {
          tv.setText(R.string.finding_location); 
@@ -222,18 +230,27 @@ public class EditBlogElement extends LocationUpdates
       }
       
       Context context = getApplicationContext();
-      String displayLoc = "<unknown>"; // default, but never shown
-      String suffix = ""; // explanation text to display after the location
       LatLng latlng = getCurrentLatLng();
+      String displayLoc = latlng != null ? getLngLat(context, latlng)
+            : getString(R.string.found_no_location);
       
-      // We also need to display accuracy, if we have it and no manual edits occurred
-      if (mIsNewBlog && mEditedLatLng == null && mBestLocation != null)
+      // Explanation text to display after the location, or accuracy display
+      // Display accuracy, if we have it and no manual edits have occurred.
+      String suffix = "";
+      if (mIsNewBlog && mEditedLatLng == null)
       {
-         String accuracy = getAccuracy(context, mBestLocation);
-         suffix = "\n" + accuracy;            
+         if (mBestLocation == null)
+         {
+            if (mOldLatLng != null)
+               suffix = "\n[previous post]"; 
+         }
+         else
+         {
+            String accuracy = getAccuracy(context, mBestLocation);
+            suffix = "\n" + accuracy; 
+         }
       }
       
-      displayLoc = getLngLat(context, latlng);
       tv.setText(displayLoc + suffix);
    }
 
@@ -247,6 +264,10 @@ public class EditBlogElement extends LocationUpdates
       // Since we going to manually edit the location, turn off the location updates.
       stopPeriodicUpdates();
       
+      // If applicable, display 'No location' warning
+      warnNoLocationToast();
+      
+      // Start new edit location activity
       Intent i = new Intent(this, EditLocation.class);
       Bundle b = new Bundle();
       b.putString("BLOG_NAME", mTitle);
@@ -279,6 +300,10 @@ public class EditBlogElement extends LocationUpdates
             // Don't finish this task, stay on this same screen
             return;
          }
+         
+         // If applicable, display 'No location, using default' warning
+         warnNoLocationToast();
+         
          locString = latlng.longitude + "," + latlng.latitude + ",0";
 
          Log.d(TAG, "Saving blog location " + locString);
@@ -358,7 +383,7 @@ public class EditBlogElement extends LocationUpdates
    @Override
    public void onLocationChanged(Location location) {
       super.onLocationChanged(location);
-      Log.d(TAG, "onLocationChanged"); // TODO comment out, may get a lot of these
+      Log.d(TAG, "onLocationChanged");
       if(LocationUpdates.isBetterLocation(location, mBestLocation))
       {
          mBestLocation = location;
@@ -367,31 +392,22 @@ public class EditBlogElement extends LocationUpdates
    }
    
    /**
-    * Use the start/stop PeriodicUpdates methods to change the displayed location.
+    * If we have not received a location update and we needed one at this time,
+    * warn the user using a Toast message.
     */
-   @Override
-   protected void startPeriodicUpdates() {
-      super.startPeriodicUpdates();
-      // Show a message that we are looking for a new location...
-      displayLocation();
+   private void warnNoLocationToast()
+   {
+      if (mIsNewBlog && mBestLocation == null && mEditedLatLng == null)
+      {
+         if (mOldLatLng == null)
+            Toast.makeText(this, R.string.no_location_fix_no_default,
+                  Toast.LENGTH_LONG).show();
+         else
+            Toast.makeText(this, R.string.no_location_fix_use_previous,
+                  Toast.LENGTH_LONG).show();
+      }
    }
    
-   @Override
-   protected void stopPeriodicUpdates() {
-      boolean updatesRequested = updatesRequested();
-      super.stopPeriodicUpdates();
-      // Show a message that we stopped looking for a new location...
-      // This could happen if the location duration setting was too short, or if the
-      // user clicked on location to start the EditLocation activity.
-      // Need to be careful: don't want this message seen too many times. The predicate
-      // below tries to limit these message. 
-      if (updatesRequested && mBestLocation == null)
-      {
-         Toast.makeText(this, R.string.no_location_fix, Toast.LENGTH_LONG).show();
-      }
-      displayLocation();
-   }
-
    /*
     * Handle results returned to this Activity by other Activities started with
     * startActivityForResult(). In particular, the method onConnectionFailed()
@@ -407,7 +423,6 @@ public class EditBlogElement extends LocationUpdates
       // Choose what to do based on the request code
       switch (requestCode)
       {
-
       case EDIT_LOCATION_REQUEST:
          if (resultCode == RESULT_OK)
          {
@@ -415,6 +430,14 @@ public class EditBlogElement extends LocationUpdates
             LatLng latlng = extras.getParcelable("BLOG_LATLNG");
             mEditedLatLng = latlng;
             Log.d(TAG, "Got location from EditLocation exit: " + latlng);
+         }
+         else if (resultCode == RESULT_CANCELED)
+         {
+            // If we were listening for location updates and don't have any
+            // previous edited value, start listening again. Note that this will restart
+            // the timer, but that is fine - if the user interrupted a timer, went into
+            // EditLocation, hit cancel, then we do need to listen for updates again.
+            this.checkEnableLocationUpdates();
          }
          displayLocation();
          break;
@@ -426,6 +449,60 @@ public class EditBlogElement extends LocationUpdates
 
          break;
       }
+   }
+   
+   /**
+    * Internal function to start the location updates.
+    * Updates are started for the duration requested in the settings.
+    */
+   private void checkEnableLocationUpdates()
+   {
+      if (mEditedLatLng == null && mIsNewBlog)
+      {
+         super.enableLocationUpdates(mUpdatesDuration);
+      }
+   }
+   
+   /**
+    * Stop periodic updates as a result of timer firing.
+    * This can be also defined in the subclass to display appropriate messages if location
+    * has still not been found.
+    */
+   @Override
+   protected void timerCancelUpdates() {
+      super.timerCancelUpdates();
+      
+      // Since we are no longer listening to updates, set the location to the
+      // current location fix. This is necessary to avoid restarting location
+      // updates on a screen orientation change which calls onCreate/onStart again.
+      if (mBestLocation != null)
+      {
+         mEditedLatLng = new LatLng(mBestLocation.getLatitude(), mBestLocation.getLongitude());
+      }
+      
+      // Update location string
+      displayLocation();
+      
+      // If applicable, display 'No location, using default' warning
+      warnNoLocationToast();
+   }
+   
+   /**
+    * We need to survive a device orientation change. Android will completely destroy
+    * and recreate this activity.
+    * If we don't remember mEditedLatLng for example, we may restart the location
+    * updates and lose the fact that user had actually entered a location.
+    * EditText values are saved by the system, so just need to save mEditedLatLng and such.
+    */
+   
+   @Override
+   public void onSaveInstanceState(Bundle savedInstanceState) {
+     super.onSaveInstanceState(savedInstanceState);
+     Log.d(TAG, "save instance state");
+     // Save UI state changes to the savedInstanceState.
+     // This bundle will be passed to onCreate if the process is
+     // killed and restarted.
+     savedInstanceState.putParcelable("mEditedLatLng", mEditedLatLng);
    }
 
 }

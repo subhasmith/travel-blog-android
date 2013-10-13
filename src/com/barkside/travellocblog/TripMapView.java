@@ -129,8 +129,8 @@ public class TripMapView extends FragmentActivity {
    private void addMarkersToMap() {
       /*
       Maybe TODO: run this in a thread, yielding ever so often, otherwise, UI
-      thread may be blocked for too long if adding 1000s of markers.
-      Tested with 300-900 markers on a 2011 phone, and that seems to be fine.
+      thread may be blocked for too long if adding 1000+ markers.
+      Tested with 300-1000 markers on a 2011 phone, and that seems to be fine.
       For large number of notes, saving the file is probably a bigger issuse than this.
       Use new Thread() and runOnUiThread or use AsyncThread for loading markers, if needed.
     */

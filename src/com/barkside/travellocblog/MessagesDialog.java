@@ -1,14 +1,9 @@
 package com.barkside.travellocblog;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.text.method.LinkMovementMethod;
@@ -30,12 +25,11 @@ public class MessagesDialog extends DialogFragment {
    // For logging and debugging purposes
    private static final String TAG = "MessagesDialog";
    
-   // Asset name for each TextView, passed in as arg to this dialog
-   // Each name represents in a file in res/assets folder.
-   public static final String MESSAGE1_ASSET_ARG = "MESSAGE1_ASSSET";
-   public static final String MESSAGE2_ASSET_ARG = "MESSAGE2_ASSSET";
-   public static final String MESSAGE_TITLE_ARG = "MESSAGE_TITLE";
-   // LATER public static final String DISPLAY_LEGAL_NOTICES = "LEGAL_NOTICES"; // 0/1 value
+   // Bundle keys used to pass data to this dialog
+   // Each key represents a string id number to display in a TextView.
+   public static final String MESSAGE1_STRING_ID_ARG = "MESSAGE1_STRING_ID";
+   public static final String MESSAGE2_STRING_ID_ARG = "MESSAGE2_STRING_ID";
+   public static final String TITLE_STRING_ID_ARG = "TITLE_STRING_ID";
    
    Context mContext = null;
 
@@ -44,16 +38,16 @@ public class MessagesDialog extends DialogFragment {
    }
    
    // Caller sends in string resource id for each message box
-   String mMessage1Asset = "";
-   String mMessage2Asset = "";
-   String mMessageTitle = "Dialog";
+   int mMessage1Id = 0;
+   int mMessage2Id = 0;
+   int mMessageTitleId = 0;
    
    @Override
    public void onCreate(Bundle savedInstanceState) {
        super.onCreate(savedInstanceState);
-       mMessage1Asset = getArguments().getString(MESSAGE1_ASSET_ARG);
-       mMessage2Asset = getArguments().getString(MESSAGE2_ASSET_ARG);
-       mMessageTitle = getArguments().getString(MESSAGE_TITLE_ARG);
+       mMessage1Id = getArguments().getInt(MESSAGE1_STRING_ID_ARG);
+       mMessage2Id = getArguments().getInt(MESSAGE2_STRING_ID_ARG);
+       mMessageTitleId = getArguments().getInt(TITLE_STRING_ID_ARG);
   }
    
    @Override
@@ -82,7 +76,7 @@ public class MessagesDialog extends DialogFragment {
          return null;
       }
       
-      getDialog().setTitle(mMessageTitle);
+      getDialog().setTitle(mMessageTitleId);
 
       String version = "0.0.0"; // to denote unknown version
       try
@@ -96,32 +90,24 @@ public class MessagesDialog extends DialogFragment {
       }
 
       // App name and version number
-      TextView tv = (TextView) view.findViewById(R.id.app_name_version);
-      String name = getString(R.string.app_name_version_format, getString(R.string.app_name),
-            version);
-      tv.setText(name);
+      TextView tv = (TextView) view.findViewById(R.id.app_name);
+      tv.setText(R.string.app_name);
+      tv = (TextView) view.findViewById(R.id.app_version);
+      tv.setText(version);
       
-      AssetManager assetManager = context.getAssets();
-
       // Display text in Message1 TextView, for example, the Help message
-      if (mMessage1Asset != null) {
+      if (mMessage1Id != 0) {
          tv = (TextView) view.findViewById(R.id.message1);
-         tv.setText(readTextFromAsset(mMessage1Asset, assetManager));
+         tv.setText(mMessage1Id);
          tv.setMovementMethod(LinkMovementMethod.getInstance());         
       }
       
       // Display text in Message2 TextView, for example, What's New
-      if (mMessage2Asset != null) {
+      if (mMessage2Id != 0) {
          tv = (TextView) view.findViewById(R.id.message2);
-         tv.setText(readTextFromAsset(mMessage2Asset, assetManager));
+         tv.setText(mMessage2Id);
          tv.setMovementMethod(LinkMovementMethod.getInstance());         
       }
-      
-      // Display text in Message3 TextView, this is the Google Play Service legal notice
-      // Only necessary for About screen, which is not yet supported in a Dialog,
-      // so no need to handle this case now.
-      //tv = (TextView) view.findViewById(R.id.message3);
-      //tv.setText(GooglePlayServicesUtil.getOpenSourceSoftwareLicenseInfo(context));
       
       // User can dismiss the dialog by clicking on button
       Button button = (Button)view.findViewById(R.id.buttonOK);
@@ -133,37 +119,4 @@ public class MessagesDialog extends DialogFragment {
       
       return view;
    }
-
-   /**
-    * This method reads simple text file from res/assets folder.
-    * @param assetName
-    * @return data from file
-    */
-
-   private String readTextFromAsset(String assetName, AssetManager assetManager) {
-
-      InputStream inputStream = null;
-      try {
-         inputStream = assetManager.open(assetName);
-      } catch (IOException e) {
-         Log.e(TAG, e.getMessage());
-      }
-
-      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-      byte buf[] = new byte[1024];
-      int len;
-
-      try {
-         while ((len = inputStream.read(buf)) != -1) {
-            outputStream.write(buf, 0, len);
-         }
-         outputStream.close();
-         inputStream.close();
-      } catch (IOException e) {
-         Log.e(TAG, e.getMessage());
-      }
-
-      return outputStream.toString();
-   }
-
 }
