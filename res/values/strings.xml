@@ -25,6 +25,7 @@
     <string name="new_post">New Post</string>
     <string name="default_trip">MyFirstTrip.kml</string>
 
+    <string name="menu_new_note">New Note</string>
     <string name="menu_new_post">New Post</string>
     <string name="menu_open">Open Trip</string>
     <string name="menu_new">New Trip</string>

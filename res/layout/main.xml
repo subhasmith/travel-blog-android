@@ -7,46 +7,9 @@
 	android:paddingTop="@dimen/activity_vertical_margin"
 	android:layout_height="fill_parent">	
 	
-	<LinearLayout android:id="@+id/layout_main" 
-		android:layout_alignParentTop="true" 
-		android:layout_alignParentLeft="true"
-	    android:orientation="vertical"
-	    android:layout_width="fill_parent"
-	    android:layout_height="wrap_content"
-    >
-		<LinearLayout
-		    android:orientation="horizontal"
-		    android:layout_width="fill_parent"
-		    android:layout_height="wrap_content"
-		    android:paddingBottom="8dp"		
-		    >    
-			<TextView android:id="@+id/trip_name" 
-			    android:layout_width="wrap_content" 
-			    android:layout_height="wrap_content" 
-			    android:textSize="18sp"
-			    android:textStyle="bold"
-			    android:textColor="@android:color/white"
-			    android:text="@string/default_trip"
-			    android:layout_weight="1"
-			    />	    
-			<Button android:id="@+id/new_blog" 
-			    android:layout_width="wrap_content"
-			    android:layout_height="wrap_content"
-			    android:text="@string/new_post" 
-			    android:gravity="center"
-			    android:layout_weight="1"/>
-		</LinearLayout>
-	 
-		<View
-	         android:layout_width="fill_parent"
-	         android:layout_height="2dip"
-	         android:background="#FF909090" />	  
-	</LinearLayout>
-	
 	<ListView android:id="@+id/blog_list" 
+		android:layout_alignParentTop="true" 
 	    android:layout_width="fill_parent" 
-	    android:layout_below="@id/layout_main"
 	    android:layout_height="wrap_content"
-	    android:layout_alignParentBottom="true"
 	    />   
 </RelativeLayout>

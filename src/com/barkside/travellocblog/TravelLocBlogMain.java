@@ -13,8 +13,11 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.ShareActionProvider;
+import android.support.v7.widget.ShareActionProvider.OnShareTargetSelectedListener;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.Menu;
@@ -28,7 +31,6 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 
@@ -41,7 +43,7 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
  * Displays a list of blog entries from the last used trip file.
  */
 
-public class TravelLocBlogMain extends FragmentActivity
+public class TravelLocBlogMain extends ActionBarActivity implements OnShareTargetSelectedListener
 {
    // For logging and debugging purposes
    private static final String TAG = "TravelLocBlogMain";
@@ -53,8 +55,9 @@ public class TravelLocBlogMain extends FragmentActivity
    Dialog mNewDialog;
    CharSequence[] mFileList;
    public static String TRIP_PATH = "/TravelBlog";
-   protected static final int CONTEXTMENU_EDITITEM = 0;
-   protected static final int CONTEXTMENU_DELETEITEM = 1;
+   private static final int CONTEXTMENU_EDITITEM = 0;
+   private static final int CONTEXTMENU_DELETEITEM = 1;
+   private ShareActionProvider mShareActionProvider;
    
    // Named preference file use deprecated - see SettingsActivity class comments.
    public static final String PREFS_NAME = "MyPrefsFile"; // deprecated as of versionCode 6
@@ -65,7 +68,6 @@ public class TravelLocBlogMain extends FragmentActivity
    private String mFileName = "MyFirstTrip" + KML_SUFFIX;
    
    private boolean mShowWhatsnew = false;
-
    
    ListView mBlogList;
 
@@ -75,20 +77,13 @@ public class TravelLocBlogMain extends FragmentActivity
    {
       super.onCreate(savedInstanceState);
       setContentView(R.layout.main);
+      
       this.mBlogList = (ListView) this.findViewById(R.id.blog_list);
-      Button newPost = (Button) this.findViewById(R.id.new_blog);
-      newPost.setOnClickListener(new OnClickListener()
-      {
-         public void onClick(View v)
-         {
-            newBlogEntry();
-         }
-      });
       
       // When item is clicked, open up the Edit Post activity.
       // For now, long-click continues to show context menu, will be later
       // removed, to work like other Android 4.0+ apps. TODO: Make this
-      // class a ListActivity? 
+      // class a ListActivity?
       mBlogList.setOnItemClickListener(new ListView.OnItemClickListener()
       {
          @Override
@@ -97,7 +92,6 @@ public class TravelLocBlogMain extends FragmentActivity
             editBlogEntry(mirrorElement(position));
          }
       });
-
 
       /* Attempt to open last used blog file. Try new default prefs, and deprecated prefs too */
       SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
@@ -147,7 +141,6 @@ public class TravelLocBlogMain extends FragmentActivity
 
       // Commit the edits!
       editor.commit();
-
    }
 
    /* Called to edit a blog post, by passing extras in a bundle */
@@ -250,8 +243,9 @@ public class TravelLocBlogMain extends FragmentActivity
          adapter.addItem(new BlogListData(blog.title, blog.description));
       }
       mBlogList.setAdapter(adapter);
-      TextView tv2 = (TextView) findViewById(R.id.trip_name);
-      tv2.setText(fileToTripName(mFileName));
+      
+      // update ActionBar title with blog name
+      setTitle(fileToTripName(mFileName));
    }
 
    /* Because we have the most recent post at the top (standard blog view) */
@@ -428,19 +422,80 @@ public class TravelLocBlogMain extends FragmentActivity
    {
       MenuInflater inflater = getMenuInflater();
       inflater.inflate(R.menu.trip_menu, menu);
+      
+      // Set up ShareActionProvider's default share intent
+      // TODO: remove this, just go back to old code of handling click ourselves.
+      // Turns out there is no way to avoid Android inserting an extra icon
+      // in the action bar on a Share click, taking up valuable action bar space.
+      MenuItem shareItem = menu.findItem(R.id.send_trip);
+      mShareActionProvider = (ShareActionProvider)
+              MenuItemCompat.getActionProvider(shareItem);
+      
+      mShareActionProvider.setShareIntent(createShareIntent());
+
+      // Trying to prevent a second share icon being displayed,
+      // but it is not working... while onShareTargetSelected is called,
+      // it is not preventing a second icon from being added to ActionBar. TODO
+      mShareActionProvider.setOnShareTargetSelectedListener(this);
       return true;
    }
 
+
+   /** Defines a share intent to initialize the action provider.
+    * As soon as the actual content to be used in the intent
+    * is known or changes, you must update the share intent by again calling
+    * mShareActionProvider.setShareIntent(createShareIntent())
+    */
+   private Intent createShareIntent() {
+      Intent shareIntent = new Intent(Intent.ACTION_SEND);
+      shareIntent.setType("*/*");
+      if (mFileName != null && !mFileName.isEmpty())
+      {
+         File file = new File(Environment.getExternalStorageDirectory()
+               + TRIP_PATH + "/" + mFileName);
+         shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
+      }
+      shareIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      shareIntent.putExtra(Intent.EXTRA_SUBJECT,
+            "Your Travel Blog KML file is attached");
+      shareIntent.putExtra(Intent.EXTRA_TEXT,
+            "Thank you for using Travel Blog.");
+      return shareIntent;
+   }
+
+   /**
+    * An attempt to disable the extra "most used share icon" that Android displays
+    * on the ActionBar. It takes up important real-estate,and currently there
+    * seems to be no other way to disable it. This also disables the share history,
+    * would have been nice to keep that history and just remove the extra share icon
+    * but no way to do that easily today in Android (without copying in all the
+    * ShareActionProvider related classes).
+    * implements OnShareTargetSelectedListener function.
+    */
    @Override
-   public boolean onMenuItemSelected(int featureId, MenuItem item)
+   public boolean onShareTargetSelected(ShareActionProvider source, Intent intent) {
+      Log.d(TAG, "onShareTargetSelected");
+      // started activity ourself to prevent search history 
+      this.startActivity(intent); 
+      return true; // as per developer.android docs, return false for consistency 
+      // http://stackoverflow.com/questions/10706564/how-do-you-turn-off-share-history-when-using-shareactionprovide
+      // says to return true to disable the extra icon, but that is not working.
+      // neither true nor false makes any change here.
+   }
+
+   @Override
+   public boolean onOptionsItemSelected(MenuItem item)
    {
       switch (item.getItemId())
       {
+         case R.id.new_note:
+            newBlogEntry();
+            return true;
          case R.id.open_trip:
             openTrip();
             return true;
-         case R.id.send_trip:
-            sendTrip();
+         case R.id.send_trip: // no need to handle, mShareActionProvider does it all.
+            Log.d(TAG, "onOptions item selected for send_trip"); // never comes here
             return true;
          case R.id.new_trip:
             newTrip();
@@ -465,7 +520,7 @@ public class TravelLocBlogMain extends FragmentActivity
             startActivity(new Intent(this, SettingsActivity.class));
             return true;
          default:
-            return super.onMenuItemSelected(featureId, item);
+            return super.onOptionsItemSelected(item);
       }
    }
 
@@ -497,7 +552,7 @@ public class TravelLocBlogMain extends FragmentActivity
       builder.create().show();
    }
 
-   void sendTrip()
+   void sendTripNOTUSED() // TODO DELETE NOTUSED
    {
       try
       {
@@ -576,6 +631,9 @@ public class TravelLocBlogMain extends FragmentActivity
       SharedPreferences.Editor editor = settings.edit();
       editor.putString(SettingsActivity.LAST_OPENED_TRIP_KEY, file);
       editor.commit();
+      
+      // Initialize the file to send, and update it when file changes too
+      mShareActionProvider.setShareIntent(createShareIntent());
    }
 
    void newTrip()
