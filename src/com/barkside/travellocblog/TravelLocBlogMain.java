@@ -14,10 +14,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBarActivity;
-import android.support.v7.widget.ShareActionProvider;
-import android.support.v7.widget.ShareActionProvider.OnShareTargetSelectedListener;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.Menu;
@@ -43,7 +40,7 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
  * Displays a list of blog entries from the last used trip file.
  */
 
-public class TravelLocBlogMain extends ActionBarActivity implements OnShareTargetSelectedListener
+public class TravelLocBlogMain extends ActionBarActivity
 {
    // For logging and debugging purposes
    private static final String TAG = "TravelLocBlogMain";
@@ -57,7 +54,6 @@ public class TravelLocBlogMain extends ActionBarActivity implements OnShareTarge
    public static String TRIP_PATH = "/TravelBlog";
    private static final int CONTEXTMENU_EDITITEM = 0;
    private static final int CONTEXTMENU_DELETEITEM = 1;
-   private ShareActionProvider mShareActionProvider;
    
    // Named preference file use deprecated - see SettingsActivity class comments.
    public static final String PREFS_NAME = "MyPrefsFile"; // deprecated as of versionCode 6
@@ -423,64 +419,10 @@ public class TravelLocBlogMain extends ActionBarActivity implements OnShareTarge
       MenuInflater inflater = getMenuInflater();
       inflater.inflate(R.menu.trip_menu, menu);
       
-      // Set up ShareActionProvider's default share intent
-      // TODO: remove this, just go back to old code of handling click ourselves.
-      // Turns out there is no way to avoid Android inserting an extra icon
+      // Do not use ShareActionProvider
+      // Turns out there is no way (that works) to avoid Android inserting an extra icon
       // in the action bar on a Share click, taking up valuable action bar space.
-      MenuItem shareItem = menu.findItem(R.id.send_trip);
-      mShareActionProvider = (ShareActionProvider)
-              MenuItemCompat.getActionProvider(shareItem);
-      
-      mShareActionProvider.setShareIntent(createShareIntent());
-
-      // Trying to prevent a second share icon being displayed,
-      // but it is not working... while onShareTargetSelected is called,
-      // it is not preventing a second icon from being added to ActionBar. TODO
-      mShareActionProvider.setOnShareTargetSelectedListener(this);
       return true;
-   }
-
-
-   /** Defines a share intent to initialize the action provider.
-    * As soon as the actual content to be used in the intent
-    * is known or changes, you must update the share intent by again calling
-    * mShareActionProvider.setShareIntent(createShareIntent())
-    */
-   private Intent createShareIntent() {
-      Intent shareIntent = new Intent(Intent.ACTION_SEND);
-      shareIntent.setType("*/*");
-      if (mFileName != null && !mFileName.isEmpty())
-      {
-         File file = new File(Environment.getExternalStorageDirectory()
-               + TRIP_PATH + "/" + mFileName);
-         shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
-      }
-      shareIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      shareIntent.putExtra(Intent.EXTRA_SUBJECT,
-            "Your Travel Blog KML file is attached");
-      shareIntent.putExtra(Intent.EXTRA_TEXT,
-            "Thank you for using Travel Blog.");
-      return shareIntent;
-   }
-
-   /**
-    * An attempt to disable the extra "most used share icon" that Android displays
-    * on the ActionBar. It takes up important real-estate,and currently there
-    * seems to be no other way to disable it. This also disables the share history,
-    * would have been nice to keep that history and just remove the extra share icon
-    * but no way to do that easily today in Android (without copying in all the
-    * ShareActionProvider related classes).
-    * implements OnShareTargetSelectedListener function.
-    */
-   @Override
-   public boolean onShareTargetSelected(ShareActionProvider source, Intent intent) {
-      Log.d(TAG, "onShareTargetSelected");
-      // started activity ourself to prevent search history 
-      this.startActivity(intent); 
-      return true; // as per developer.android docs, return false for consistency 
-      // http://stackoverflow.com/questions/10706564/how-do-you-turn-off-share-history-when-using-shareactionprovide
-      // says to return true to disable the extra icon, but that is not working.
-      // neither true nor false makes any change here.
    }
 
    @Override
@@ -494,8 +436,8 @@ public class TravelLocBlogMain extends ActionBarActivity implements OnShareTarge
          case R.id.open_trip:
             openTrip();
             return true;
-         case R.id.send_trip: // no need to handle, mShareActionProvider does it all.
-            Log.d(TAG, "onOptions item selected for send_trip"); // never comes here
+         case R.id.send_trip:
+            sendTrip();
             return true;
          case R.id.new_trip:
             newTrip();
@@ -552,22 +494,22 @@ public class TravelLocBlogMain extends ActionBarActivity implements OnShareTarge
       builder.create().show();
    }
 
-   void sendTripNOTUSED() // TODO DELETE NOTUSED
+   void sendTrip()
    {
       try
       {
          File file = new File(Environment.getExternalStorageDirectory()
                + TRIP_PATH + "/" + mFileName);
          Intent sendIntent = new Intent(Intent.ACTION_SEND);
-         sendIntent.setType("*/*");
+         sendIntent.setType("text/plain");
          sendIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
          sendIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
          sendIntent.putExtra(Intent.EXTRA_SUBJECT,
-               "Your Travel Blog KML file is attached");
+               getString(R.string.share_subject_line));
          sendIntent.putExtra(Intent.EXTRA_TEXT,
-               "Thank you for using Travel Blog.");
+               String.format(getString(R.string.share_body_text), mFileName));
          startActivity(Intent.createChooser(sendIntent,
-               "Choose how to send your trip KML file:"));
+               getString(R.string.share_prompt)));
       }
       catch (Exception e)
       {
@@ -631,9 +573,6 @@ public class TravelLocBlogMain extends ActionBarActivity implements OnShareTarge
       SharedPreferences.Editor editor = settings.edit();
       editor.putString(SettingsActivity.LAST_OPENED_TRIP_KEY, file);
       editor.commit();
-      
-      // Initialize the file to send, and update it when file changes too
-      mShareActionProvider.setShareIntent(createShareIntent());
    }
 
    void newTrip()

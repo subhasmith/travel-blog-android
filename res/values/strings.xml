@@ -51,6 +51,10 @@
     <string name="no_location_services_title">Location Services Warning</string>
     <string name="no_location_services_message">Please turn on location access.\nGPS and Network location access is necessary for this app.</string>
     
+    <string name="share_subject_line">Your Travel Blog KML file is attached</string>
+    <string name="share_body_text">Filename: %1$s\n---\nThank you for using Travel Blog.</string>
+    <string name="share_prompt">Choose how to send your trip KML file:</string>
+    
     <!-- Settings (Preferences) strings -->
     <string name="location_duration">Location fix duration</string>
     <string name="location_duration_default">-15</string>

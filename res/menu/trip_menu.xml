@@ -8,7 +8,6 @@
     <item android:id="@+id/send_trip"
           android:icon="@drawable/ic_action_share"
           local:showAsAction="ifRoom"
-          local:actionProviderClass="android.support.v7.widget.ShareActionProvider"
           android:title="@string/menu_send" />    
     <item android:id="@+id/trip_info"
           android:icon="@drawable/ic_menu_info_details"
