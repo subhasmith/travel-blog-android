@@ -42,7 +42,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.v4.app.DialogFragment;
-import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -87,7 +87,7 @@ import java.util.regex.PatternSyntaxException;
  * The update interval is hard-coded to be 5 seconds, and so on - to try to get accurate readings,
  * but not use much battery.
  */
-public abstract class LocationUpdates extends FragmentActivity implements
+public abstract class LocationUpdates extends ActionBarActivity implements
         LocationListener,
         GooglePlayServicesClient.ConnectionCallbacks,
         GooglePlayServicesClient.OnConnectionFailedListener {

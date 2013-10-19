@@ -8,12 +8,16 @@ import java.util.TimeZone;
 import com.google.android.gms.maps.model.LatLng;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
@@ -67,7 +71,6 @@ public class EditBlogElement extends LocationUpdates
    
    private final int EDIT_LOCATION_REQUEST = 100;
 
-   
    /**
     * Return the layout to inflate, to the abstract base class.
     *
@@ -336,12 +339,15 @@ public class EditBlogElement extends LocationUpdates
       case R.id.cancel_button:
          setResult(RESULT_CANCELED);
          break;
+         
+      default:
+         // Unknown button clicked? We finish the activity anyway.
+         Log.e(TAG, "Unknown button click received, performing cancel.");
+         setResult(RESULT_CANCELED);
+         break;
       }
       
-      // Since we going to exit, turn off the location updates.
-      stopPeriodicUpdates();
-      
-      finish();
+      sendResult();
    }
    
    @Override
@@ -505,4 +511,69 @@ public class EditBlogElement extends LocationUpdates
      savedInstanceState.putParcelable("mEditedLatLng", mEditedLatLng);
    }
 
+   @Override
+   public boolean onCreateOptionsMenu(Menu menu)
+   {
+      MenuInflater inflater = getMenuInflater();
+      inflater.inflate(R.menu.edit_post, menu);
+      
+      return true;
+   }
+
+   @Override
+   public boolean onOptionsItemSelected(MenuItem item)
+   {
+      switch (item.getItemId())
+      {
+         case R.id.delete_post:
+            deletePost();
+            return true;
+         case R.id.send_feedback:
+            TravelLocBlogMain.sendFeedback(this);
+            return true;
+       case R.id.help:
+            TravelLocBlogMain.showHelp(getSupportFragmentManager());
+            return true;
+         default:
+            return super.onOptionsItemSelected(item);
+      }
+   }
+
+   private void sendResult()
+   {
+      // Since we going to exit, turn off the location updates.
+      stopPeriodicUpdates();
+      
+      finish();
+   }
+   
+   /**
+    * Menu command to delete this post. Just like the contextual menu delete post,
+    * we ask for confirmation before acting on it.
+    */
+   private void deletePost()
+   {
+      // For both New Post, or editing an existing Post,
+      // send delete_post result, so caller can handle it correctly.
+      final Context context = this;
+      TravelLocBlogMain.areYouSure(this, this.getString(R.string.are_you_sure_post),
+            new DialogInterface.OnClickListener()
+      {
+         public void onClick(DialogInterface dialog, int id)
+         {
+            dialog.dismiss();
+            switch (id)
+            {
+            case DialogInterface.BUTTON_POSITIVE:
+               setResult(TravelLocBlogMain.RESULT_DELETE_POST);
+               sendResult(); // finishes activity
+               break;
+            case DialogInterface.BUTTON_NEGATIVE:
+            default:
+               Toast.makeText(context, R.string.cancel_post_delete,
+                     Toast.LENGTH_LONG).show();
+               break;
+            }
+         }});
+   }
 }

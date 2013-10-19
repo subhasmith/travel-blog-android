@@ -3,9 +3,9 @@ package com.barkside.travellocblog;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 
 import android.os.Bundle;
-import android.app.Activity;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.support.v7.app.ActionBarActivity;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.widget.TextView;
@@ -14,7 +14,7 @@ import android.widget.TextView;
  * Activity to display About information, including Legal Notices
  */
 
-public class AboutActivity extends Activity
+public class AboutActivity extends ActionBarActivity
 {
    private static final String TAG = "AboutActivity";
 

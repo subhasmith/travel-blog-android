@@ -32,20 +32,24 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
 
 /**
- * Activity to display all the blog note entry locations on a map.
+ * Activity to display all the blog entry locations on a map.
  * 
  * Map code taken from
  * android-sdks/extras/google/google_play_services/samples/maps/
  * src/com/example/mapdemo/MarkerDemo java file.
  * 
  */
-public class TripMapView extends FragmentActivity {
+public class TripMapView extends ActionBarActivity {
    // For logging and debugging purposes
    private static final String TAG       = "TripMapView";
 
@@ -66,6 +70,11 @@ public class TripMapView extends FragmentActivity {
       String filename = extras.getString("TRIP");
       mBlogData = new BlogData();
       mBlogData.openBlog(filename);
+      
+      // update ActionBar title with blog name
+      // to support SDK 11 and older, need to use getSupportActionBar
+      ActionBar actionBar = getSupportActionBar();
+      actionBar.setTitle(TravelLocBlogMain.fileToTripName(filename));
 
       /* use one pointer for the first location, and another for the rest */
       mIconFirst = BitmapDescriptorFactory.fromResource(R.drawable.marker_green_go);
@@ -202,5 +211,31 @@ public class TripMapView extends FragmentActivity {
                });
       }
    }
+   
+   @Override
+   public boolean onCreateOptionsMenu(Menu menu)
+   {
+      MenuInflater inflater = getMenuInflater();
+      inflater.inflate(R.menu.map_trip, menu);
+      
+      return true;
+   }
+
+   @Override
+   public boolean onOptionsItemSelected(MenuItem item)
+   {
+      switch (item.getItemId())
+      {
+         case R.id.send_feedback:
+            TravelLocBlogMain.sendFeedback(this);
+            return true;
+       case R.id.help:
+            TravelLocBlogMain.showHelp(getSupportFragmentManager());
+            return true;
+         default:
+            return super.onOptionsItemSelected(item);
+      }
+   }
+
 
 }

@@ -74,6 +74,34 @@ public class BlogData
       return saveBlogToFile();
    }
 
+   /* delete the given blog */
+   public Boolean deleteBlog(String filename)
+   {
+      if (filename == null)
+      {
+         return false;
+      }
+      
+      String path = Environment.getExternalStorageDirectory() + mPath + "/" + filename;
+      // Following file functions throw no exception as long as filename != null
+      File file = new File(path);
+      boolean status = file.delete();
+      
+      if (status)
+         {
+         Log.d(TAG, "Deleted file " + path);
+         // Did we delete the current file belonging to this object?
+         if (mFile.equals(filename))
+         {
+            mFile = null;
+            mBlogs.clear();
+         }
+      }
+      return status;
+   }
+
+   /* updates element if index valid, otherwise creates new element if index -1 */
+
    /* updates element if index valid, otherwise creates new element if index -1 */
    public Boolean saveBlogElement(BlogElement blog, int index)
    {
@@ -181,8 +209,17 @@ public class BlogData
 
          Document dom = docBuilder.parse(file);
          
+         if (dom == null)
+            return false;
+         
          Element root = dom.getDocumentElement();
+         if (root == null)
+            return false;
+         
          NodeList placemarks = root.getElementsByTagName("Placemark");
+         if (placemarks == null)
+            return false;
+         
          for (int i = 0; i < placemarks.getLength(); i++)
          {
             BlogElement blog = new BlogElement();
@@ -211,13 +248,15 @@ public class BlogData
                String name = property.getNodeName();
                if (name.equalsIgnoreCase("name"))
                {
-                  blog.title = property.getFirstChild().getNodeValue();
+                  Node child = property.getFirstChild();
+                  if (child != null)
+                     blog.title = property.getFirstChild().getNodeValue();
                }
                else if (name.equalsIgnoreCase("description"))
                {
                   StringBuilder text = new StringBuilder();
                   NodeList chars = property.getChildNodes();
-                  for (int k = 0; k < chars.getLength(); k++)
+                  for (int k = 0; chars != null && k < chars.getLength(); k++)
                   {
                      text.append(chars.item(k).getNodeValue());
                   }

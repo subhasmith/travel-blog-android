@@ -5,16 +5,20 @@ import java.util.Locale;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentManager;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
+import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.Menu;
@@ -24,10 +28,12 @@ import android.view.View;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnClickListener;
 import android.view.View.OnCreateContextMenuListener;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 
@@ -49,6 +55,10 @@ public class TravelLocBlogMain extends ActionBarActivity
 
    public static final int NEW_BLOG_ENTRY = 100;
    public static final int EDIT_BLOG_ENTRY = 111;
+   
+   // Custom result returned by EditBlogPost activity
+   public static final int RESULT_DELETE_POST = RESULT_FIRST_USER;
+   
    Dialog mNewDialog;
    CharSequence[] mFileList;
    public static String TRIP_PATH = "/TravelBlog";
@@ -61,7 +71,7 @@ public class TravelLocBlogMain extends ActionBarActivity
    private int mEditItem = 0;
    private int mDeleteItem = -1;
    private static final String KML_SUFFIX = ".kml";
-   private String mFileName = "MyFirstTrip" + KML_SUFFIX;
+   private String mFileName = null;
    
    private boolean mShowWhatsnew = false;
    
@@ -231,6 +241,7 @@ public class TravelLocBlogMain extends ActionBarActivity
     */
    void refreshList()
    {
+      Log.d(TAG, "refreshList " + mFileName);
       BlogListAdapter adapter = new BlogListAdapter(this);
       mBlogList.setAdapter(adapter);
       for (int i = 0; i < mBlogData.getMaxBlogElements(); i++)
@@ -241,7 +252,9 @@ public class TravelLocBlogMain extends ActionBarActivity
       mBlogList.setAdapter(adapter);
       
       // update ActionBar title with blog name
-      setTitle(fileToTripName(mFileName));
+      // to support SDK 11 and older, need to use getSupportActionBar
+      ActionBar actionBar = getSupportActionBar();
+      actionBar.setTitle(fileToTripName(mFileName));
    }
 
    /* Because we have the most recent post at the top (standard blog view) */
@@ -303,7 +316,23 @@ public class TravelLocBlogMain extends ActionBarActivity
             if (menuInfo.position < mBlogData.getMaxBlogElements())
             {
                mDeleteItem = mirrorElement(menuInfo.position);
-               areYouSure();
+               TravelLocBlogMain.areYouSure(this, this.getString(R.string.are_you_sure_post),
+                     new DialogInterface.OnClickListener()
+               {
+                  public void onClick(DialogInterface dialog, int id)
+                  {
+                     dialog.dismiss();
+                     switch (id)
+                     {
+                     case DialogInterface.BUTTON_POSITIVE:
+                        deletePost();
+                        break;
+                     case DialogInterface.BUTTON_NEGATIVE:
+                     default:
+                        mDeleteItem = -1;
+                        break;
+                     }
+                  }});
             }
             refreshList();
             return true; /* true means: "we handled the event". */
@@ -376,41 +405,50 @@ public class TravelLocBlogMain extends ActionBarActivity
    protected void onActivityResult(int requestCode, int resultCode, Intent data)
    {
       super.onActivityResult(requestCode, resultCode, data);
-      BlogElement blog = new BlogElement();
-      if (resultCode == RESULT_OK)
+      if (!(requestCode == NEW_BLOG_ENTRY || requestCode == EDIT_BLOG_ENTRY))
       {
+         Log.e(TAG, "Unexpected activity code " + requestCode);
+         return;
+      }
+            
+      int editItem = (requestCode == EDIT_BLOG_ENTRY) ? mEditItem : -1;
+
+      switch (resultCode)
+      {
+      case RESULT_DELETE_POST:
+         Log.d(TAG, "Got result delete post " + editItem);
+         mDeleteItem = editItem;
+         deletePost();
+         break;
+
+      case RESULT_CANCELED:
+         break;
+         
+      case RESULT_OK:
+         BlogElement blog = new BlogElement();
          Bundle extras = data.getExtras();
 
          blog.title = extras.getString("BLOG_NAME");
          blog.description = extras.getString("BLOG_DESCRIPTION");
          blog.location = extras.getString("BLOG_LOCATION");
          blog.timeStamp = extras.getString("BLOG_TIMESTAMP");
-      }
 
-      // Log.d(TAG, "resultCode = " + resultCode + " requestCode = " + requestCode);
-      Log.d(TAG, "Edit complete, saving location " + blog.location);
+         // Log.d(TAG, "resultCode = " + resultCode + " requestCode = " + requestCode);
+         Log.d(TAG, "Edit complete, saving location " + blog.location);
 
-      int editItem = (requestCode == EDIT_BLOG_ENTRY) ? mEditItem : -1;
-      switch (requestCode)
-      {
-         case NEW_BLOG_ENTRY:
-         case EDIT_BLOG_ENTRY:
-            if (resultCode == RESULT_OK)
-            {
-               if (mBlogData.saveBlogElement(blog, editItem) == false)
-               {
-                  Toast.makeText(this, R.string.failed_post_save,
-                        Toast.LENGTH_SHORT).show();
-               }
-               else
-               {
-                  Toast.makeText(this, R.string.post_saved,
-                        Toast.LENGTH_SHORT).show();
-               }
-            }
-            break;
+         if (mBlogData.saveBlogElement(blog, editItem) == false)
+         {
+            Toast.makeText(this, R.string.failed_post_save,
+                  Toast.LENGTH_SHORT).show();
+         }
+         else
+         {
+            Toast.makeText(this, R.string.post_saved,
+                  Toast.LENGTH_SHORT).show();
+         }
+         refreshList();
+         break;
       }
-      refreshList();
    }
 
    @Override
@@ -442,24 +480,23 @@ public class TravelLocBlogMain extends ActionBarActivity
          case R.id.new_trip:
             newTrip();
             return true;
+         case R.id.delete_trip:
+            deleteTrip();
+            return true;
          case R.id.map_trip:
             mapTrip();
             return true;
          case R.id.help:
-            FragmentManager fm = getSupportFragmentManager();
-            MessagesDialog helpDialog = new MessagesDialog();
-            Bundle args = new Bundle();
-            args.putInt(MessagesDialog.MESSAGE1_STRING_ID_ARG, R.string.help_message);
-            args.putInt(MessagesDialog.MESSAGE2_STRING_ID_ARG, R.string.whatsnew_message);
-            args.putInt(MessagesDialog.TITLE_STRING_ID_ARG, R.string.help_title);
-            helpDialog.setArguments(args);
-            helpDialog.show(fm, "Help Dialog");
+            TravelLocBlogMain.showHelp(getSupportFragmentManager());
             return true;
          case R.id.trip_info:
             showTripInfo();
             return true;
          case R.id.settings:
             startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+         case R.id.send_feedback:
+            TravelLocBlogMain.sendFeedback(this);
             return true;
          default:
             return super.onOptionsItemSelected(item);
@@ -501,7 +538,11 @@ public class TravelLocBlogMain extends ActionBarActivity
          File file = new File(Environment.getExternalStorageDirectory()
                + TRIP_PATH + "/" + mFileName);
          Intent sendIntent = new Intent(Intent.ACTION_SEND);
-         sendIntent.setType("text/plain");
+         
+         // text/plain would be best, but seems like some mail apps (HTC
+         // phones?) need text/html, etc, so just use text/* as the setType
+         sendIntent.setType("text/*");
+         
          sendIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
          sendIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
          sendIntent.putExtra(Intent.EXTRA_SUBJECT,
@@ -516,22 +557,31 @@ public class TravelLocBlogMain extends ActionBarActivity
          Log.e(TAG, "error occurred while sending file");
          return;
       }
-
    }
 
-   void openTrip()
+   CharSequence[] getFileList()
    {
+      CharSequence[] fileList = null;
       try
       {
-         mFileList = new File(Environment.getExternalStorageDirectory()
+         fileList = new File(Environment.getExternalStorageDirectory()
                + TRIP_PATH).list();
       }
       catch (Exception e)
       {
          Log.e(TAG, "error occurred while reading file list");
-         return;
       }
+      return fileList;
+   }
 
+   /**
+    * Display the list of trips (.kml files) and executes listener code
+    * on a click.
+    * @param listener code to execute on a file select and click.
+    */
+   void tripsDialog(DialogInterface.OnClickListener listener)
+   {
+      mFileList = getFileList();
       if (mFileList == null)
       {
          Toast.makeText(this, R.string.no_files_found,
@@ -547,24 +597,88 @@ public class TravelLocBlogMain extends ActionBarActivity
 
       AlertDialog.Builder builder = new AlertDialog.Builder(this);
       builder.setTitle("Choose a Trip");
-      builder.setSingleChoiceItems(mFileList, -1,
-            new DialogInterface.OnClickListener()
-            {
-               public void onClick(DialogInterface dialog, int item)
-               {
-                  dialog.dismiss();
-                  openTripOnClick(mFileList[item].toString());
-                  
-               }
-            });
+      builder.setSingleChoiceItems(mFileList, -1, listener);
       builder.create();
       builder.show();
    }
 
-   public void openTripOnClick(String file)
+   void openTrip()
    {
-      // Log.d(TAG, "open file: " + file);
-      openTripFile(file);
+      tripsDialog(new DialogInterface.OnClickListener() {
+         public void onClick(DialogInterface dialog, int item)
+         {
+            dialog.dismiss();
+            openTripFile(mFileList[item].toString());
+         }
+      });
+   }
+
+   void deleteTrip()
+   {
+      final Context context = this;
+      // Display the list of files, and when item is selected for delete,
+      // display the areYouSure dialog.
+      // Essentially:   tripsDialog( listListener, areYouSure(msg, yesNoListener) )
+
+      DialogInterface.OnClickListener listListener
+      = new DialogInterface.OnClickListener() {
+         public void onClick(DialogInterface dialog, final int item)
+         {
+            dialog.dismiss();
+            final String fileName = mFileList[item].toString();
+            String msg = String.format(getString(R.string.are_you_sure_file), fileName);
+
+            // areYouSure dialog listener
+            DialogInterface.OnClickListener yesNoListener
+            = new DialogInterface.OnClickListener() {
+               public void onClick(DialogInterface dialog, int id)
+               {
+                  dialog.dismiss();
+                  boolean deleted = false;
+                  switch (id)
+                  {
+                     case DialogInterface.BUTTON_POSITIVE:
+                        deleted = mBlogData.deleteBlog(fileName);
+                        break;
+                     case DialogInterface.BUTTON_NEGATIVE:
+                     default:
+                        break;
+                  }
+                  if (deleted)
+                  {
+                     mFileList = getFileList();
+                     if (mFileName.equals(fileName))
+                     {
+                        // Deleting currently open file so open some other file
+                        // Pick the 0th file to display (any will do),
+                        // otherwise use default
+                        if (mFileList != null && mFileList.length > 0)
+                           mFileName = mFileList[0].toString();
+                        else
+                           mFileName = getString(R.string.default_trip);
+                        
+                        setDefaultTrip(mFileName);
+                        mBlogData.openBlog(mFileName);
+                        refreshList();            
+                     }
+                     Toast.makeText(context, R.string.deleted_file,
+                           Toast.LENGTH_LONG).show();
+                  }
+                  else
+                  {
+                     Toast.makeText(context, R.string.delete_file_failed,
+                           Toast.LENGTH_LONG).show();
+                  }
+               }
+            };
+            // Display the areYouSure dialog, and on Yes, delete the file
+            TravelLocBlogMain.areYouSure(context, msg, yesNoListener);
+         }
+      };
+      
+      // Display the list of files, and when item is selected for delete,
+      // display the areYouSure dialog.
+      tripsDialog(listListener);
    }
 
    void setDefaultTrip(String file)
@@ -579,6 +693,11 @@ public class TravelLocBlogMain extends ActionBarActivity
    {
       mNewDialog.setTitle(R.string.menu_new);
       mNewDialog.setContentView(R.layout.new_trip);
+      
+      // Show keyboard since we need to type in a file name
+      mNewDialog.getWindow().setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+      
       Button save = (Button) mNewDialog.findViewById(R.id.new_button);
       save.setOnClickListener(new OnClickListener()
       {
@@ -645,32 +764,39 @@ public class TravelLocBlogMain extends ActionBarActivity
       refreshList();
    }
 
-   private void areYouSure()
+   boolean deleteTripFile(String file)
    {
-      AlertDialog.Builder builder = new AlertDialog.Builder(
-            TravelLocBlogMain.this);
-      builder.setMessage(this.getString(R.string.are_you_sure_msg));
-      builder.setTitle(this.getString(R.string.are_you_sure));
-      builder.setPositiveButton(R.string.Yes,
-            new DialogInterface.OnClickListener()
-            {
-               public void onClick(DialogInterface dialog, int id)
-               {
-                  dialog.cancel();
-                  deletePost();
-               }
-            });
-      builder.setNegativeButton(R.string.cancel,
-            new DialogInterface.OnClickListener()
-            {
-               public void onClick(DialogInterface dialog, int id)
-               {
-                  mDeleteItem = -1;
-                  dialog.cancel();
-               }
-            });
+      boolean deleted = mBlogData.deleteBlog(mFileName);
+      if (deleted == true)
+      {
+      }
+      return deleted;
+   }
+
+   /**
+    * Display a Yes No / Confirmation dialog.
+    * @param listener called for both BUTTON_POSITIVE and BUTTON_NEGATIVE
+    */
+   public static void areYouSure(Context context, String msg,
+         DialogInterface.OnClickListener listener)
+   {
+      AlertDialog.Builder builder = new AlertDialog.Builder(context);
+      
+      builder.setMessage(msg);
+
+      builder.setTitle(R.string.are_you_sure);
+      builder.setPositiveButton(R.string.Yes, listener);
+      builder.setNegativeButton(R.string.cancel, listener);
       builder.setCancelable(true);
-      builder.create().show();
+      AlertDialog dialog = builder.create();
+      dialog.show();
+      
+      // After dialog is shown, we can get the textview and make it HTML capable
+      // TODO: not working, does not display HTML - similar code works in
+      // AboutActivity though. Leaving it in for now, may look into this later.
+      TextView tv = (TextView)dialog.findViewById(android.R.id.message);
+      tv.setMovementMethod(LinkMovementMethod.getInstance());
+      tv.setClickable(true);
    }
 
    /* Open the map view activity to display the trip */
@@ -691,13 +817,74 @@ public class TravelLocBlogMain extends ActionBarActivity
                Toast.LENGTH_SHORT).show();
       }
    }
+   
+   /**
+    * Send Feedback opens up an Email client addressed to Travel Blog mailing list.
+    * Called from multiple activities so uses activity Context as an arg.
+    */
+   private static void sendFeedbackEmail(Context context)
+   {
+      
+      Intent emailIntent = new Intent(Intent.ACTION_SENDTO,
+            Uri.fromParts("mailto", context.getString(R.string.feedback_email), null));
+      emailIntent.putExtra(Intent.EXTRA_SUBJECT,
+            context.getString(R.string.feedback_subject));
+      
+      // Initialize body text with a few system details
+      String text = String.format("%s. Android %s (SDK %d)\n",
+            Build.MODEL, Build.VERSION.RELEASE, Build.VERSION.SDK_INT);
+      
+      emailIntent.putExtra(Intent.EXTRA_TEXT, text);
 
+      context.startActivity(Intent.createChooser(emailIntent,
+            context.getString(R.string.feedback_title)));
+   }
+   
+   /**
+    * Top level feedback command.
+    * First, display Private Notice and then on confirmation, call sendFeedBackEmail.
+    * Called from multiple activities so uses activity Context as an arg.
+    */
+
+   public static void sendFeedback(final Context context)
+   {
+      TravelLocBlogMain.areYouSure(context,
+            context.getString(R.string.feedback_privacy_notice),
+            new DialogInterface.OnClickListener() {
+         public void onClick(DialogInterface dialog, int id)
+         {
+            dialog.dismiss();
+            switch (id)
+            {
+            case DialogInterface.BUTTON_POSITIVE:
+               TravelLocBlogMain.sendFeedbackEmail(context);
+               break;
+            case DialogInterface.BUTTON_NEGATIVE:
+            default:
+               Toast.makeText(context, R.string.feedback_cancel,
+                     Toast.LENGTH_LONG).show();
+               break;
+            }
+         }});
+   }
+
+   public static void showHelp(FragmentManager fm)
+   {
+      MessagesDialog helpDialog = new MessagesDialog();
+      Bundle args = new Bundle();
+      args.putInt(MessagesDialog.MESSAGE1_STRING_ID_ARG, R.string.help_message);
+      args.putInt(MessagesDialog.MESSAGE2_STRING_ID_ARG, R.string.whatsnew_message);
+      args.putInt(MessagesDialog.TITLE_STRING_ID_ARG, R.string.help_title);
+      helpDialog.setArguments(args);
+      helpDialog.show(fm, "Help Dialog");
+   }
+   
    /**
     * Utility function to convert file name to trip name
     */
-   public static String fileToTripName(String fileName)
+   public static String fileToTripName(String filename)
    {
-      String name = fileName;
+      String name = filename == null ? "" : filename;
       // Show the name without the suffix, and check that name is at least 1 char
       int lastSuffix = name.lastIndexOf(KML_SUFFIX);
       if (lastSuffix > 1) name = name.substring(0, lastSuffix);
