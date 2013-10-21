@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="location_duration_entries">
+        <item>15 seconds</item>
+        <item>30 seconds</item>
+        <item>15 seconds after first update</item>
+        <item>No auto-off</item>
+        </string-array>
+
+    <!--
+    http://code.google.com/p/android/issues/detail?id=2096
+    Android bug: ListPrefence can only support string-array for values, otherwise will crash
+    when user selects a value of if defaultValue is used.
+    -->
+
+    <string-array name="location_duration_values">
+        <item>15</item> 
+        <item>30</item>
+        <item>-15</item>  <!-- @string/location_duration_default -->
+        <item>-9999</item> <!--  should match mNoAutOff in LocationUpdates class -->
+    </string-array>
+
+</resources>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Application identifiers -->
+    <string name="app_name">Travel Blog</string>
+    <string name="app_description">        Saves blog entries with location and timestamp.</string>
+    <string name="edit_post_name">Edit Post</string>
+    <string name="edit_location_name">Edit Location</string>
+    <string name="map_trip_name">Map Trip</string>
+    <string name="feedback_email">travel-blog-android@googlegroups.com</string>
+    
+    <!-- Longitude, Latitude format (order is same as KML coordinates element) -->
+    <string name="longitude_latitude_format">%1$.4f, %2$.4f</string>
+    <string name="latitude_longitude_format">%1$.4f, %2$.4f</string>
+    <string name="accuracy_format">± %1$.1f m</string>
+
+    <!-- Menu title -->
+    <string name="menu_new_post">New Post</string>
+    <string name="menu_open">Open Trip</string>
+    <string name="menu_new">New Trip</string>
+    <string name="menu_delete_trip">Delete Trip</string>
+    <string name="menu_info">Trip Info</string>
+    <string name="menu_help">Help</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_about">About</string>
+    <string name="menu_delete_post">Delete Post</string>
+    <string name="menu_send">Share Trip</string>
+    <string name="menu_map">Map Trip</string>
+    <string name="menu_send_feedback">Send feedback</string>
+    
+    <!-- Labels -->
+    <string name="note_title_hint">Enter title</string>
+    <string name="note_desc_hint">Enter description</string>
+
+    <string name="save">Save</string>
+    <string name="save_location">Use Location</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="date_store">Reapply Timestamp</string>
+
+    <string name="default_trip">MyFirstTrip.kml</string>
+
+    <string name="new_trip_dialog_text">Please enter new trip filename:</string>
+    <string name="OK">OK</string>
+    <string name="Yes">Yes</string>
+    <string name="done">Done</string>
+    <string name="file_suffix">.kml</string>
+    <string name="file_name_hint">Filename</string>
+    <string name="are_you_sure">Confirmation</string>
+    <string name="are_you_sure_file">Delete the file %1$s?</string>
+    <string name="are_you_sure_post">Delete this post?</string>
+    <string name="map_not_ready">Map is not fully loaded yet</string>
+    <string name="app_name_version_format">%1$s (Version %2$s)</string>
+    <string name="about_notices_label">COPYRIGHT NOTICES</string>
+    <string name="finding_location">Finding Location&#x2026;</string> <!--  x2026 is ... -->
+    <string name="found_no_location">No Location.</string>
+    <string name="no_location_services_title">Location Services Warning</string>
+    <string name="no_location_services_message">Please turn on location access.\nGPS and Network location access is necessary for this app.</string>
+    <string name="feedback_subject">Feedback</string>
+    <string name="feedback_title">Send email feedback&#x2026;</string> <!--  x2026 is ... -->
+    <!--  the privacy notice has HTML, but it may not always display as formatted, in which
+          case, only the text will be displayed. -->
+    <string name="feedback_privacy_notice"><b>Privacy Notice</b>: This feedback sends email to an open and
+        public <a href="https://groups.google.com/forum/#!forum/travel-blog-android">Travel Blog
+        Google Groups mailing list</a>.
+        Your email address, this device model name, and the Android version
+        is used in the feedback message.\n\nContinue with feedback?</string>
+    <string name="feedback_cancel">Feedback cancelled.</string>
+    
+    <string name="share_subject_line">Your Travel Blog KML file is attached</string>
+    <string name="share_body_text">Filename: %1$s\n---\nThank you for using Travel Blog.</string>
+    <string name="share_prompt">Choose how to send your trip KML file:</string>
+    
+    <!-- Settings (Preferences) strings -->
+    <string name="location_duration">Location fix duration</string>
+    <string name="location_duration_default">-15</string>
+    <string name="default_desc_title">Auto-fill description</string>
+    <string name="default_desc_on">Fill in with current date and time</string>
+    <string name="default_desc_off">Leave it blank</string>
+    <string name="about_settings_title">ABOUT</string>
+    <string name="about_menu_title">About Travel Blog</string>
+    <string name="general_settings_title">GENERAL SETTINGS</string>
+
+    <!-- Toast Messages -->
+    <string name="title_desc_missing">A title or description is required to Save entry.</string>
+    <string name="location_missing">A location is required to Save entry.</string>
+    <string name="failed_post_delete">Failed to delete blog post.</string>
+    <string name="post_deleted">Post deleted.</string>
+    <string name="cancel_post_delete">Delete post cancelled.</string>
+    <string name="failed_post_save">Failed to save blog post.</string>
+    <string name="post_saved">Post saved.</string>
+    <string name="no_files_found">No files to open.</string>
+    <string name="invalid_filename">Invalid filename.</string>
+    <string name="invalid_filename_period">Invalid filename (remove the period).</string>
+    <string name="invalid_filename_exists">File name exists, cannot overwrite.</string>
+    <string name="failed_file_create">Failed to create new file.</string>
+    <string name="map_trip_empty">Map has no locations to show.</string>
+    <string name="last_file_open_failed">Failed to open last used trip file.</string>
+    <string name="deleted_file">Trip file deleted.</string>
+    <string name="delete_file_failed">Could not delete trip file.</string>
+    
+    <string name="final_fallback_lnglat">0,51</string>
+    <string name="no_location_fix_no_default">No location fix found. No previous entry. Using location 0,51.</string>
+    <string name="no_location_fix_use_previous">No location fix found. Using previous entry\'s location.</string>
+    
+    <string name="using_fallback_location">Location estimate failed. Using location 0,51 to initialize editor.</string>
+    
+</resources>
