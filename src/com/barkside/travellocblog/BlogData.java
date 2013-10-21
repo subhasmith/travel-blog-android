@@ -29,6 +29,9 @@ public class BlogData
    private String mFile = null;
    private static final String mPath = TravelLocBlogMain.TRIP_PATH;
 
+   // For logging and debugging purposes
+   private static final String TAG = "BlogData";
+
    /*
     * this function closes anything that is already open, then opens new file,
     * or creates
@@ -42,7 +45,7 @@ public class BlogData
    {
       if (filename != null)
       {
-         // Log.d("TRAVEL_DEBUG", "Opening file: "+ filename);
+         // Log.d(TAG, "Opening file: "+ filename);
          File newFile = new File(Environment.getExternalStorageDirectory()
                + mPath);
          try
@@ -51,7 +54,7 @@ public class BlogData
          }
          catch (Exception e)
          {
-
+            Log.d(TAG, "Failed to open file: " + filename);
          }
       }
 
@@ -71,20 +74,44 @@ public class BlogData
       return saveBlogToFile();
    }
 
-   /* updates element if index valid, otherwise creates new element if index -1 */
-   public Boolean saveBlogElement(BlogElement blog, int index)
+   /* delete the given blog */
+   public Boolean deleteBlog(String filename)
    {
-      if ((blog.location == null) || (blog.location.length() == 0)
-            || (blog.name == null) || (blog.name.length() == 0))
+      if (filename == null)
       {
          return false;
       }
-      String str = blog.name.trim();
-      blog.name = str;
-      str = blog.description.trim();
-      blog.description = str;
-      str = blog.location.trim();
-      blog.location = str;
+      
+      String path = Environment.getExternalStorageDirectory() + mPath + "/" + filename;
+      // Following file functions throw no exception as long as filename != null
+      File file = new File(path);
+      boolean status = file.delete();
+      
+      if (status)
+         {
+         Log.d(TAG, "Deleted file " + path);
+         // Did we delete the current file belonging to this object?
+         if (mFile.equals(filename))
+         {
+            mFile = null;
+            mBlogs.clear();
+         }
+      }
+      return status;
+   }
+
+   /* updates element if index valid, otherwise creates new element if index -1 */
+
+   /* updates element if index valid, otherwise creates new element if index -1 */
+   public Boolean saveBlogElement(BlogElement blog, int index)
+   {
+      if (!blog.valid())
+      {
+         return false;
+      }
+      
+      // keep user-entered strings unchanged - so no trimming on save of the
+      // text fields such as blog.description, etc
 
       if (index == -1)
       {
@@ -148,8 +175,8 @@ public class BlogData
     * We also ignore the lines at the end of the file - these will be recreated when
     * we save anyway.  Example KML:
       <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
-      <kml>
-        <Document xmlns="http://www.opengis.net/kml/2.2">
+      <kml xmlns="http://www.opengis.net/kml/2.2">
+        <Document>
           <Placemark>
             <name>My First TravelBlog Post</name>
             <description>01/06/2011 21:16
@@ -166,11 +193,11 @@ public class BlogData
     */
    private Boolean openBlogFromFile()
    {
+      String path = Environment.getExternalStorageDirectory() + mPath + "/" + mFile;
       // Dom it up
       try
       {
-         File file = new File(Environment.getExternalStorageDirectory() + mPath
-               + "/" + mFile);
+         File file = new File(path);
 
          if (file.exists() == false)
             return false;
@@ -181,8 +208,18 @@ public class BlogData
          DocumentBuilder docBuilder = factory.newDocumentBuilder();
 
          Document dom = docBuilder.parse(file);
+         
+         if (dom == null)
+            return false;
+         
          Element root = dom.getDocumentElement();
+         if (root == null)
+            return false;
+         
          NodeList placemarks = root.getElementsByTagName("Placemark");
+         if (placemarks == null)
+            return false;
+         
          for (int i = 0; i < placemarks.getLength(); i++)
          {
             BlogElement blog = new BlogElement();
@@ -211,13 +248,15 @@ public class BlogData
                String name = property.getNodeName();
                if (name.equalsIgnoreCase("name"))
                {
-                  blog.name = property.getFirstChild().getNodeValue();
+                  Node child = property.getFirstChild();
+                  if (child != null)
+                     blog.title = property.getFirstChild().getNodeValue();
                }
                else if (name.equalsIgnoreCase("description"))
                {
                   StringBuilder text = new StringBuilder();
                   NodeList chars = property.getChildNodes();
-                  for (int k = 0; k < chars.getLength(); k++)
+                  for (int k = 0; chars != null && k < chars.getLength(); k++)
                   {
                      text.append(chars.item(k).getNodeValue());
                   }
@@ -245,8 +284,14 @@ public class BlogData
                      Node pointProperty = pointProperties.item(k);
                      if (pointProperty.getNodeName().equalsIgnoreCase("when"))
                      {
-                        blog.timeStamp = (pointProperty.getFirstChild()
-                              .getNodeValue());
+                        Node data = pointProperty.getFirstChild();
+                        if (data == null) {
+                           blog.timeStamp = "";
+                        }
+                        else 
+                        {
+                           blog.timeStamp = data.getNodeValue();
+                        }
                      }
                   }
                }
@@ -257,8 +302,19 @@ public class BlogData
       }
       catch (Exception e)
       {
-         Log.e("TRAVEL_DEBUG", "DOM Parse error", e);
+         Log.e(TAG, "DOM Parse error loading file " + e);
+         /**
+          * TODO: added this return false in version 2.0.0 (Sep 2013).
+          * There was no return false on exception, so sometimes, even when loaded file had
+          * a problem, the rest of the app would continue to execute, and sometimes it worked
+          * fine, sometimes it failed. This should only happen on non-TravelBlog generated
+          * KML files, but leaving in TODO to have it work - handle all possible data files,
+          * and fill in blog data structure as best as it is possible. Basically, need to check
+          * for null pointers in all of the navigation above, as in the blog.timeStamp above.
+          */
+         return false;
       }
+      Log.d(TAG, "Loaded file " + path);
       return true;
    }
 
@@ -294,7 +350,7 @@ public class BlogData
             float results[] = { 0, 0, 0, 0, 0 };
             Location.distanceBetween(previousLat, previousLon, lat, lon, results);
             total += results[0];
-            // Log.d("TRAVEL_DEBUG", "Distance: "+ Math.round(results[0]) +
+            // Log.d(TAG, "Distance: "+ Math.round(results[0]) +
             // "m");
          }
 
@@ -318,7 +374,7 @@ public class BlogData
       }
       catch (IOException e)
       {
-         Log.e("IOException", "exception in createNewFile() method");
+         Log.e(TAG, "IOException exception in createNewFile() method");
          return false;
       }
       // we have to bind the new file with a FileOutputStream
@@ -329,7 +385,7 @@ public class BlogData
       }
       catch (FileNotFoundException e)
       {
-         Log.e("FileNotFoundException", "can't create FileOutputStream");
+         Log.e(TAG, "FileNotFoundException can't create FileOutputStream");
          return false;
       }
       // we create a XmlSerializer in order to write xml data
@@ -348,9 +404,9 @@ public class BlogData
                "http://xmlpull.org/v1/doc/features.html#indent-output", true);
          // start a tag called "root"
          serializer.startTag(null, "kml");
-         serializer.startTag(null, "Document");
          // set an attribute called "xmlns" with a "http:..." for <kml>
          serializer.attribute(null, "xmlns", "http://www.opengis.net/kml/2.2");
+         serializer.startTag(null, "Document");
          /* Perhaps use for icon in future?:
           * <Style id="desired_id"> <IconStyle> <Icon>
           * <href>http://www.yourwebsite.com/your_preferred_icon.png</href>
@@ -398,11 +454,11 @@ public class BlogData
                {
                   serializer.startTag(null, "Placemark");
                }
-               if ((blog.name != null) && (j == 0))
+               if ((blog.title != null) && (j == 0))
                {
                   serializer.startTag(null, "name");
                   // write some text inside <name>
-                  serializer.text(blog.name);
+                  serializer.text(blog.title);
                   serializer.endTag(null, "name");
                }
                if ((blog.description != null) && (j == 0))
@@ -425,8 +481,7 @@ public class BlogData
                   }
                   catch (Exception e)
                   {
-                     Log.e("Exception",
-                           "error occurred while reading blog name");
+                     Log.e(TAG, "Exception error occurred while reading blog name");
                   }
                   serializer.endTag(null, "description");
                }
@@ -484,7 +539,7 @@ public class BlogData
       }
       catch (Exception e)
       {
-         Log.e("Exception", "error occurred while creating xml file");
+         Log.e(TAG, "Exception error occurred while creating xml file");
          return false;
       }
       return true;
@@ -495,16 +550,37 @@ public class BlogData
 /* The Blog Element used in the array */
 class BlogElement
 {
-   public String description;
-   public String name;
-   public String location;
-   public String timeStamp;
+   public String description = "";
+   public String title = "";
+   public String location = "";
+   public String timeStamp = "";
+   /**
+    * Many parts of code expect string for these fields. And in error cases such as
+    * when an foreign .kml file is loaded, having null here can cause the app to never
+    * be able to start, crashes on trying to load the bad file.
+    * So, make these variables non-null so a string call like trim() or split() won't
+    * terminate the app.
+    */
 
-   public BlogElement()
+   /**
+    * Given a BlogElement, check if it has valid data, can be saved, etc.
+    * @param blog the BlogElement object to check
+    * @return true if object is ok and can be saved, etc
+    */
+   public Boolean valid()
    {
-      this.description = null;
-      this.name = null;
-      this.location = null;
-      this.timeStamp = null;
+      if ((this.location == null) || (this.location.length() == 0)) {
+         // Must have a location
+         return false;
+      }
+      if ((this.title == null) || (this.description == null)) {
+         return false;
+      }
+      if ((this.title.length() == 0) && (this.description.length() == 0)) {
+         // Both strings can't be empty
+         return false;
+      }
+      return true;
    }
+
 }

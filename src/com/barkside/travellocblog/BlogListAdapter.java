@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,6 +13,9 @@ import android.widget.TextView;
 
 public class BlogListAdapter extends BaseAdapter
 {
+
+   // For logging and debugging purposes
+   private static final String TAG = "BlogListAdapter";
 
    /** Remember our context so we can use it when constructing views. */
    private Context mContext;
@@ -78,12 +82,27 @@ public class BlogListAdapter extends BaseAdapter
       {
          convertView = inflater.inflate(R.layout.blog_list, parent, false);
       }
+      
+      BlogListData item = mItems.get(position);
+      if (item == null){
+         Log.w(TAG, "No item found - probably load KML file error?");
+         return null;
+      }
 
-      ((TextView) convertView.findViewById(R.id.titleText)).setText(mItems.get(
-            position).getNameText());
-      ((TextView) convertView.findViewById(R.id.dexcriptionText))
-            .setText(mItems.get(position).getDetailText());
+      /*
+       * For both name and description, we want to display as much as will fit on one line.
+       * If the text is actually multiple line, we combine the lines into a single line.
+       * And we use TextView to truncate it as needed, and show ellipses (...) at the point
+       * of truncation.
+       * Ran into a ellipsize bug in TextView (putting ... in middle and still showing words
+       * after that and not truncating), so now replace all cr lf chars from
+       * name and description. Now works better. The ... char is shown at end of TextView line.
+       */
+      String text = item.getNameText().trim().replaceAll("\\r|\\n", " ");
+      ((TextView) convertView.findViewById(R.id.titleText)).setText(text);
+      
+      text = item.getDetailText().trim().replaceAll("\\r|\\n", " ");
+      ((TextView) convertView.findViewById(R.id.dexcriptionText)).setText(text);
       return convertView;
    }
-
 }

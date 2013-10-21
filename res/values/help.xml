@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Help Message -->
+    <string name="help_message">Travel Blog is an app for creating posts tagged with location and timestamp.\n
+\n<b>The full <a href="https://code.google.com/p/travel-blog-android/wiki/UserGuide">User Guide</a></b> is on the web.\n
+\n
+Setup:\n
+Make sure Location Access is turned on on your Android device settings.
+For best performance, turn on both GPS Satellites and Wi-Fi and Mobile networks.\n
+\n
+The <b>New Trip</b> menu command starts a new trip. This will be the KML filename of the blog (located in /TravelBlog/ on your SD card).\n
+Click on <b>New Post</b> when you want to log your location.
+This brings up a new page where you can type a name and description.  While you are typing, it finds your location.
+If you need to modify the location, you can later edit the location on a map.\n
+\n
+You can <b>edit a post</b> by clicking on it, and you can <b>delete a post</b> by long-clicking on a post and selecting the delete command.
+When editing you can edit the name and description,
+and optionally to edit the location of your post by clicking on the location coordinates.\n
+\n
+You can view your trip on a Google map on your device by choosing <b>Map Trip</b> from the menu.
+You can copy the KML blog file manually to do what you choose with it, or you can send it via email
+or wherever your device can send it to by choosing Send Trip from the menu.\n
+\n
+Use <b>Delete Trip</b> to delete existing Trip files.\n
+\n
+Use <b>Send Feedback</b> to email us any comments or suggestions. Comments go to a public mailing list.\n
+\n
+Happy travelling!\n
+The Travel Blog Team</string>
+
+    <string name="help_title">Help</string>
+    
+    <!--  About Message -->
+    <string name="about_message">Travel Blog location app<br/>\n
+<a href="https://code.google.com/p/travel-blog-android/">Source Code and Docs</a>\n
+<a href="https://play.google.com/store/apps/details?id=com.barkside.travellocblog">Google Play Store</a>\n
+<a href="https://groups.google.com/forum/#!forum/travel-blog-android">Mailing List</a>\n
+Copyright 2011 Barkside Apps</string>
+
+    <!--  What's New Message -->
+    <string name="whatsnew_message"><b>What\'s New</b>\n
+\n
+<b>Version 2.0.1</b>\n
+* Locations are now editable using a map.
+When editing a post, click on location text to bring up a map.\n
+\n
+* Clicking on blog entry in the main list now invokes the post editing screen.\n
+\n
+* Settings menu added for customizing app behavior.\n
+\n
+* Send feedback using email menu command added.\n
+\n
+<b>Version 1.7</b>\n
+* App is now open source.\n
+\n</string>
+
+    <string name="whatsnew_title">What\'s New</string>
+        
+</resources>
