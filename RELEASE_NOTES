@@ -5,7 +5,41 @@ Google Play Store: https://play.google.com/store/apps/details?id=com.barkside.tr
 
 Light-weight app to create a list of notes with locations and timestamps and to save it in KML format.
 
-Version 2.0.0
+Version 2.2.0
+=============
+November 2013
+
+ * App widgets can be installed on the home screen to jump to the New Post editing screen.
+   Multiple widgets can be installed, each widget can point to a different trip file.
+   Each widget invokes a configuration screen on install, which allows user to select
+   an existing trip file, or create a new trip file, or to use the app default last used
+   trip file on widget click.
+   
+ * The EditBlogElement activity now shows a appropriate subtitle - "New Post" or "Edit Post"
+   as appropriate. It also shows the index number of the entry being added or edited.
+   Edit Location screen also shows the same number.
+   
+ * Rename Trip menu command added. This and Delete Trip is now under a Manage Trips submenu.
+ 
+ * Alert dialog now displayed if there is an error saving edited blog post or deleting a post.
+   This used to be just a brief Toast message, but since failing to update trip file is a
+   serious error, display it in a dialog box and do not terminate the edit activity.
+   User can still use Cancel button, or the device back or parent button or home button to
+   move to a new activity.
+ 
+ * Send feedback email now contains app version code and number, and subject includes
+   device information.
+ 
+ * Internally created a new data manager to allow multiple activities to share a single
+   trip object so it has to be loaded only once instead of multiple times.
+   
+ * Use Intent.setData and Uri to start the main activities. For example, the New Post and
+   Edit Post activity is started with content://AUTHORITY/blogname/index and action name
+   Intent.ACTION_INSERT_OR_EDIT.
+
+ * Updated a bunch of drawable ic_ icons. Added ic_action_done checkmark.
+
+Version 2.0.1
 ============
 October 2013
 

@@ -1,0 +1,6 @@
+<resources>
+
+    <!-- pre-Android 4.0 SDK v14 widget_margin is 8dp, and 0dp otherwise -->
+    <dimen name="widget_margin">0dp</dimen>
+    
+</resources>

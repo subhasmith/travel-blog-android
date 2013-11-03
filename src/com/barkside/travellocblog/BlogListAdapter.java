@@ -102,7 +102,7 @@ public class BlogListAdapter extends BaseAdapter
       ((TextView) convertView.findViewById(R.id.titleText)).setText(text);
       
       text = item.getDetailText().trim().replaceAll("\\r|\\n", " ");
-      ((TextView) convertView.findViewById(R.id.dexcriptionText)).setText(text);
+      ((TextView) convertView.findViewById(R.id.descriptionText)).setText(text);
       return convertView;
    }
 }

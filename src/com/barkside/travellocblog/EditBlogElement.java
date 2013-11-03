@@ -12,8 +12,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.app.NavUtils;
+import android.support.v4.app.TaskStackBuilder;
+import android.support.v7.app.ActionBar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -30,6 +34,12 @@ import android.widget.Toast;
  * and longitude/latitude location.
  *
  * Uses the abstract class LocationUpdates for getting the current location.
+ * 
+ * This can be a standalone activity - it creates and saves entries and handles
+ * all tasks completely, there is no need for calling activity to save blogs, for example.
+ * This activity is started from two places:
+ * 1: The main activity
+ * 2: Any user installed widgets with the New Post functionality. 
  *
  */
 public class EditBlogElement extends LocationUpdates
@@ -67,9 +77,18 @@ public class EditBlogElement extends LocationUpdates
    private String mOldTime = null;
    
    // Settings value
-   private int mUpdatesDuration = 0; // 0 mean no auto-off
+   private int mUpdatesDuration = 0; // 0 means no auto-off
    
+   private BlogDataManager mBlogData = BlogDataManager.getInstance();
+
+   // Internal request code for sub-activity
    private final int EDIT_LOCATION_REQUEST = 100;
+
+   // Opened blog full file name
+   private String mBlogname;
+
+   // Index of blog element/post being edited/created
+   private int mEditItem;
 
    /**
     * Return the layout to inflate, to the abstract base class.
@@ -99,25 +118,51 @@ public class EditBlogElement extends LocationUpdates
    {
       super.onCreate(savedInstanceState);
       // setContentView handled by base class, using getLayoutResourceId()
+      
+      // We only expect an ACTION_INSERT_OR_EDIT here
+      setResult(RESULT_CANCELED);
+      Intent intent = getIntent();
+      String action = intent.getAction();
+      if (!Intent.ACTION_INSERT_OR_EDIT.equals(action))
+      {
+         Log.e(TAG, "bad action, finishing " + action);
+         finish();
+      }
 
       mBestLocation = null;
       mEditedLatLng = null;
-      mOldLatLng = null;
-      
       // Restore UI state from the savedInstanceState.
       // This bundle is also been passed to onRestoreInstanceState, called after onCreate.
       if (savedInstanceState != null)
       {
          Log.d(TAG, "restore instance state");
          mEditedLatLng = savedInstanceState.getParcelable("mEditedLatLng");
+         mBestLocation = savedInstanceState.getParcelable("mBestLocation");
          // No need to restore (or save) the title and description TextView fields,
          // since the system does that automatically.
       }
       
-      Intent intent = getIntent();
-      String action = intent.getAction();
-      Bundle extras = intent.getExtras();
-      if (action.equals("com.barkside.travellocblog.NEW_BLOG_ENTRY"))
+      Uri uri = intent.getData();
+      mBlogname = Utils.openBlogFromIntent(this, uri, mBlogData);
+      if (mBlogname == null)
+      {
+         // If we could not open requested file or the default file, we have
+         // nothing to do, so have to error out.
+         // Toast is shown by the openBlogFromIntent function.
+         Log.e(TAG, "bad blogname, finishing " + uri);
+         finish();
+      }
+
+      // update ActionBar title with blog name
+      // to support SDK 11 and older, need to use getSupportActionBar
+      ActionBar actionBar = getSupportActionBar();
+      actionBar.setTitle(Utils.blogToDisplayname(mBlogname));
+      int subtitleId = 0; // screen subtitle R.string resource id
+
+      // Entry to edit, or -1 or no id to create new post
+      mEditItem = uri != null ? Utils.uriToEntryIndex(uri) : -1;
+      
+      if (mEditItem < 0)
       {
          mIsNewBlog = true;
 
@@ -146,16 +191,30 @@ public class EditBlogElement extends LocationUpdates
             tv.setSelection(tv.getText().length());
          }
          
-         mOldLngLat = extras.getString("BLOG_LOCATION");
+         // If we don't get a starting location, use a fallback location
+         // based on last created entry.
+         String fallbackLngLat = "";
+         int elementCount = mBlogData.getMaxBlogElements();
+         if (elementCount > 0)
+         {
+            BlogElement blog = mBlogData.getBlogElement(elementCount - 1);
+            fallbackLngLat = blog.location;
+         }
+
+         mEditItem = elementCount; // we display this in screen subtitle
+         mOldLngLat = fallbackLngLat;
+         subtitleId = R.string.new_post_name_format;
       }
-      else if (action.equals("com.barkside.travellocblog.EDIT_BLOG_ENTRY"))
+      else
       {
          // Requested to edit: set that state, and the data being edited.
          mIsNewBlog = false;
-         mTitle = extras.getString("BLOG_NAME");
-         String descr = extras.getString("BLOG_DESCRIPTION");
-         mOldTime = extras.getString("BLOG_TIMESTAMP");
-         mOldLngLat = extras.getString("BLOG_LOCATION");
+         BlogElement blog = mBlogData.getBlogElement(mEditItem);
+
+         mTitle = blog.title;
+         String descr = blog.description;
+         mOldTime = blog.timeStamp;
+         mOldLngLat = blog.location;
 
          EditText tv = (EditText) findViewById(R.id.edit_title);
          tv.setText(mTitle);
@@ -163,7 +222,21 @@ public class EditBlogElement extends LocationUpdates
          tv = (EditText) findViewById(R.id.edit_description);
          tv.setText(descr);
          tv.setSelection(tv.getText().length());
+         
+         subtitleId = R.string.edit_post_name_format;
       }
+
+      // Display a subtitle with the 1-based index of the element
+      String subtitle = String.format(getString(subtitleId), mEditItem + 1);
+      actionBar.setSubtitle(subtitle);
+
+      // Note: enable up navigation? - that will cancel edit. Is it confusing?
+      // For now, enabling it. That follows Android guidelines, and while it is
+      // not necessary for Android 4.0+ which supports the Task Stack Builder to allow
+      // back button to go back to TravelLocBlogMain, that is not supported in older
+      // Android releases. Since we support older Android release as of now (Nov 2013),
+      // enable the parent activity so that user can go back to main screen if needed.
+      actionBar.setDisplayHomeAsUpEnabled(true);
 
       mOldLatLng = stringToLatLng(mOldLngLat);
       Log.d(TAG, "Starting, created mOldLatLng " + mOldLatLng);
@@ -273,12 +346,14 @@ public class EditBlogElement extends LocationUpdates
       // Start new edit location activity
       Intent i = new Intent(this, EditLocation.class);
       Bundle b = new Bundle();
-      b.putString("BLOG_NAME", mTitle);
+      b.putString("BLOG_NAME", mBlogname);
+      b.putString("POST_NAME", mTitle);
+      b.putInt("POST_INDEX", mEditItem);
       LatLng latlng = getCurrentLatLng();
       Log.d(TAG, "calling editLocation with " + latlng);
       if (latlng != null)
       {
-         b.putParcelable("BLOG_LATLNG", latlng);         
+         b.putParcelable("POST_LATLNG", latlng);         
       }
       i.putExtras(b);
       i.setAction(Intent.ACTION_EDIT);
@@ -294,6 +369,8 @@ public class EditBlogElement extends LocationUpdates
    {
       switch (view.getId()) {
       case R.id.save_button:
+         setResult(TravelLocBlogMain.RESULT_SAVE_FAILED); // default
+
          String locString = "";
          // Always save using the current LatLng, should be available nearly always
          LatLng latlng = getCurrentLatLng();
@@ -324,16 +401,32 @@ public class EditBlogElement extends LocationUpdates
             return;
          }
 
-         Intent intent = new Intent();
-         Bundle extras = new Bundle();
-         
-         Log.d(TAG, "Edit done saving title (" + title + ") location: " + locString);
-         extras.putString("BLOG_NAME", title);
-         extras.putString("BLOG_DESCRIPTION", desc);
-         extras.putString("BLOG_LOCATION", locString);
-         extras.putString("BLOG_TIMESTAMP", mOldTime);
-         intent.putExtras(extras);
-         setResult(RESULT_OK, intent);
+         BlogElement blog = new BlogElement();
+         blog.title = title;
+         blog.description = desc;
+         blog.location = locString;
+         blog.timeStamp = mOldTime;
+         Log.d(TAG, "Edit done, title: (" + title + ") location: " + locString);
+         Log.d(TAG, "Edit done, location: " + blog.location);
+
+         if (mBlogData.saveBlogElement(blog, mEditItem) == true)
+         {
+            setResult(RESULT_OK);
+            Toast.makeText(this, R.string.post_saved,
+                  Toast.LENGTH_SHORT).show();
+         }
+         else
+         {
+            // Toast.makeText(this, R.string.failed_post_save, Toast.LENGTH_LONG).show();
+            // There have been at least 2 reports of blog corruption. We don't have
+            // a reproducible case, so have no fix for it.
+            // Not being able to save a post may mean file is corrupted,
+            // so instead of using a Toast, use an AlertDialog and don't finish
+            // this activity (this also avoids leaked window).
+            Utils.okDialog(this, getString(R.string.failed_post_save));
+            return; // stay in this activity, don't sendResult here
+         }
+
          break;
          
       case R.id.cancel_button:
@@ -433,7 +526,7 @@ public class EditBlogElement extends LocationUpdates
          if (resultCode == RESULT_OK)
          {
             Bundle extras = intent.getExtras();
-            LatLng latlng = extras.getParcelable("BLOG_LATLNG");
+            LatLng latlng = extras.getParcelable("POST_LATLNG");
             mEditedLatLng = latlng;
             Log.d(TAG, "Got location from EditLocation exit: " + latlng);
          }
@@ -509,6 +602,7 @@ public class EditBlogElement extends LocationUpdates
      // This bundle will be passed to onCreate if the process is
      // killed and restarted.
      savedInstanceState.putParcelable("mEditedLatLng", mEditedLatLng);
+     savedInstanceState.putParcelable("mBestLocation", mBestLocation);
    }
 
    @Override
@@ -526,14 +620,33 @@ public class EditBlogElement extends LocationUpdates
       switch (item.getItemId())
       {
          case R.id.delete_post:
-            deletePost();
+            deletePostUI();
             return true;
          case R.id.send_feedback:
-            TravelLocBlogMain.sendFeedback(this);
+            Utils.sendFeedback(this, TAG);
             return true;
        case R.id.help:
-            TravelLocBlogMain.showHelp(getSupportFragmentManager());
+            Utils.showHelp(getSupportFragmentManager());
             return true;
+            
+       // Respond to the action bar's Up/Home button
+       case android.R.id.home:
+          Intent upIntent = NavUtils.getParentActivityIntent(this);
+          if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
+              // This activity is NOT part of this app's task, so create a new task
+              // when navigating up, with a synthesized back stack.
+              TaskStackBuilder.create(this)
+                      // Add all of this activity's parents to the back stack
+                      .addNextIntentWithParentStack(upIntent)
+                      // Navigate up to the closest parent
+                      .startActivities();
+          } else {
+              // This activity is part of this app's task, so simply
+              // navigate up to the logical parent activity.
+              NavUtils.navigateUpTo(this, upIntent);
+          }
+          return true;
+
          default:
             return super.onOptionsItemSelected(item);
       }
@@ -551,12 +664,12 @@ public class EditBlogElement extends LocationUpdates
     * Menu command to delete this post. Just like the contextual menu delete post,
     * we ask for confirmation before acting on it.
     */
-   private void deletePost()
+   private void deletePostUI()
    {
       // For both New Post, or editing an existing Post,
       // send delete_post result, so caller can handle it correctly.
       final Context context = this;
-      TravelLocBlogMain.areYouSure(this, this.getString(R.string.are_you_sure_post),
+      Utils.areYouSure(this, this.getString(R.string.are_you_sure_post),
             new DialogInterface.OnClickListener()
       {
          public void onClick(DialogInterface dialog, int id)
@@ -566,7 +679,12 @@ public class EditBlogElement extends LocationUpdates
             {
             case DialogInterface.BUTTON_POSITIVE:
                setResult(TravelLocBlogMain.RESULT_DELETE_POST);
-               sendResult(); // finishes activity
+               Log.d(TAG, "Got delete post " + mEditItem);
+               if (EditBlogElement.deletePost(context, mEditItem, mBlogData))
+               {
+                  sendResult(); // finishes activity                  
+               }
+               // If we could not delete the post, stay on this activity
                break;
             case DialogInterface.BUTTON_NEGATIVE:
             default:
@@ -576,4 +694,31 @@ public class EditBlogElement extends LocationUpdates
             }
          }});
    }
+   
+   // Deletes the given blog item from the blog
+   public static boolean deletePost(final Context context, int editItem,
+         BlogDataManager blogData)
+   {
+      boolean deleted = false;
+      if ((editItem >= 0) && (editItem < blogData.getMaxBlogElements()))
+      {
+         if (blogData.deleteBlogElement(editItem) == false)
+         {
+            // Toast.makeText(context, R.string.failed_post_delete, Toast.LENGTH_LONG).show();
+            // Not being able to delete a post may mean file is corrupted,
+            // so instead of using a Toast, use an AlertDialog. Caller should make sure
+            // not to close this activity on this error, since that will result in a leaked
+            // window. User can use back button or parent button to exit the activity.
+            Utils.okDialog(context, context.getString(R.string.failed_post_delete));
+         }
+         else
+         {
+            deleted = true;
+            Toast.makeText(context, R.string.post_deleted,
+                  Toast.LENGTH_SHORT).show();
+         }
+      }
+      return deleted;
+   }
+
 }

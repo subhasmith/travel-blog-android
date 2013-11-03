@@ -30,8 +30,11 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.app.NavUtils;
+import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -40,6 +43,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
+import android.widget.Toast;
 
 /**
  * Activity to display all the blog entry locations on a map.
@@ -54,7 +58,7 @@ public class TripMapView extends ActionBarActivity {
    private static final String TAG       = "TripMapView";
 
    private GoogleMap           mMap;
-   BlogData                    mBlogData = null;
+   private BlogDataManager     mBlogData = BlogDataManager.getInstance();
 
    private BitmapDescriptor    mIcon     = null;
    private BitmapDescriptor    mIconFirst= null;
@@ -65,16 +69,28 @@ public class TripMapView extends ActionBarActivity {
       setContentView(R.layout.map_trip);
 
       Intent intent = getIntent();
-      Bundle extras = intent.getExtras();
-      /* Get the filename from an extra */
-      String filename = extras.getString("TRIP");
-      mBlogData = new BlogData();
-      mBlogData.openBlog(filename);
       
+      Log.d(TAG, "intent data " + intent.getDataString());
+      
+      /* Get the filename from the Uri */
+      Uri uri = intent.getData();
+      Log.d(TAG, "got uri " + uri);
+      String filename = Utils.uriToBlogname(uri);
+      Log.d(TAG, "uri to blogname " + filename);
+
+      // If this is ACTION_SEND, then filename needs to be copied and then used.
+      // Otherwise, we assume it is an internal implicit intent with blogname.
+      if ((mBlogData.openBlog(filename) == false)) {
+         Toast.makeText(this, R.string.file_open_failed,
+               Toast.LENGTH_SHORT).show();
+      }
+
+
       // update ActionBar title with blog name
       // to support SDK 11 and older, need to use getSupportActionBar
       ActionBar actionBar = getSupportActionBar();
-      actionBar.setTitle(TravelLocBlogMain.fileToTripName(filename));
+      actionBar.setTitle(Utils.blogToDisplayname(filename));
+      actionBar.setDisplayHomeAsUpEnabled(true);
 
       /* use one pointer for the first location, and another for the rest */
       mIconFirst = BitmapDescriptorFactory.fromResource(R.drawable.marker_green_go);
@@ -227,15 +243,31 @@ public class TripMapView extends ActionBarActivity {
       switch (item.getItemId())
       {
          case R.id.send_feedback:
-            TravelLocBlogMain.sendFeedback(this);
+            Utils.sendFeedback(this, TAG);
             return true;
        case R.id.help:
-            TravelLocBlogMain.showHelp(getSupportFragmentManager());
+            Utils.showHelp(getSupportFragmentManager());
             return true;
+            // Respond to the action bar's Up/Home button
+       case android.R.id.home:
+          Intent upIntent = NavUtils.getParentActivityIntent(this);
+          if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
+              // This activity is NOT part of this app's task, so create a new task
+              // when navigating up, with a synthesized back stack.
+              TaskStackBuilder.create(this)
+                      // Add all of this activity's parents to the back stack
+                      .addNextIntentWithParentStack(upIntent)
+                      // Navigate up to the closest parent
+                      .startActivities();
+          } else {
+              // This activity is part of this app's task, so simply
+              // navigate up to the logical parent activity.
+              NavUtils.navigateUpTo(this, upIntent);
+          }
+          return true;
          default:
             return super.onOptionsItemSelected(item);
       }
    }
-
 
 }

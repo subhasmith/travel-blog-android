@@ -4,10 +4,16 @@
     <!-- Application identifiers -->
     <string name="app_name">Travel Blog</string>
     <string name="app_description">        Saves blog entries with location and timestamp.</string>
-    <string name="edit_post_name">Edit Post</string>
-    <string name="edit_location_name">Edit Location</string>
+    <string name="edit_post_activity">Edit Post</string>
+    <string name="edit_post_name_format">Edit Post #%1$d</string>
+    <string name="new_post_name_format">New Post #%1$d</string>
+    <string name="edit_location_name_format">Edit Location #%1$d</string>
+    <string name="edit_location_activity">Edit Location</string>
     <string name="map_trip_name">Map Trip</string>
     <string name="feedback_email">travel-blog-android@googlegroups.com</string>
+    <string name="widget_new_post_name">Travel Blog New Post</string>
+    <string name="help_dialog_title">Help Message</string>
+    <string name="widget_configure_title">Configure Widget</string>
     
     <!-- Longitude, Latitude format (order is same as KML coordinates element) -->
     <string name="longitude_latitude_format">%1$.4f, %2$.4f</string>
@@ -19,14 +25,21 @@
     <string name="menu_open">Open Trip</string>
     <string name="menu_new">New Trip</string>
     <string name="menu_delete_trip">Delete Trip</string>
+    <string name="menu_manage_trips">Manage Trips &#x2026;</string><!--  x2026 is ... -->
+    <string name="menu_rename_trip">Rename Current Trip</string>    
     <string name="menu_info">Trip Info</string>
     <string name="menu_help">Help</string>
     <string name="menu_settings">Settings</string>
     <string name="menu_about">About</string>
     <string name="menu_delete_post">Delete Post</string>
-    <string name="menu_send">Share Trip</string>
+    <string name="menu_send">Share Trip &#x2026;</string>
     <string name="menu_map">Map Trip</string>
     <string name="menu_send_feedback">Send feedback</string>
+    <string name="widget_open_trip">Select trip</string>
+    <string name="widget_new_trip">New trip</string>
+    <string name="widget_done">Done</string>
+    <string name="widget_last_opened_trip_option">Always use the app default trip</string>
+    <string name="widget_selected_trip_option">Always use the selected trip</string>
     
     <!-- Labels -->
     <string name="note_title_hint">Enter title</string>
@@ -56,6 +69,7 @@
     <string name="found_no_location">No Location.</string>
     <string name="no_location_services_title">Location Services Warning</string>
     <string name="no_location_services_message">Please turn on location access.\nGPS and Network location access is necessary for this app.</string>
+    <string name="ok_dialog_title">Message</string>
     <string name="feedback_subject">Feedback</string>
     <string name="feedback_title">Send email feedback&#x2026;</string> <!--  x2026 is ... -->
     <!--  the privacy notice has HTML, but it may not always display as formatted, in which
@@ -70,6 +84,8 @@
     <string name="share_subject_line">Your Travel Blog KML file is attached</string>
     <string name="share_body_text">Filename: %1$s\n---\nThank you for using Travel Blog.</string>
     <string name="share_prompt">Choose how to send your trip KML file:</string>
+    <string name="widget_done_format">Use: %1$s</string>
+    <string name="widget_last_opened_trip">last opened trip each time</string>
     
     <!-- Settings (Preferences) strings -->
     <string name="location_duration">Location fix duration</string>
@@ -84,18 +100,22 @@
     <!-- Toast Messages -->
     <string name="title_desc_missing">A title or description is required to Save entry.</string>
     <string name="location_missing">A location is required to Save entry.</string>
-    <string name="failed_post_delete">Failed to delete blog post.</string>
+    <string name="failed_post_delete">System error: Failed to delete blog post.</string>
     <string name="post_deleted">Post deleted.</string>
     <string name="cancel_post_delete">Delete post cancelled.</string>
-    <string name="failed_post_save">Failed to save blog post.</string>
+    <string name="failed_post_save">System error: Failed to save blog post.</string>
     <string name="post_saved">Post saved.</string>
     <string name="no_files_found">No files to open.</string>
     <string name="invalid_filename">Invalid filename.</string>
-    <string name="invalid_filename_period">Invalid filename (remove the period).</string>
+    <string name="invalid_filename_message">Invalid filename. Disallowed characters: (%1$s).</string>
     <string name="invalid_filename_exists">File name exists, cannot overwrite.</string>
     <string name="failed_file_create">Failed to create new file.</string>
+    <string name="open_failed_one_file">Failed to open file (%1$s).</string>
+    <string name="open_failed_both_files">Failed to open requested (%1$s) and default (%2$s) files.</string>
+    <string name="failed_file_rename">Failed to rename file.</string>
     <string name="map_trip_empty">Map has no locations to show.</string>
     <string name="last_file_open_failed">Failed to open last used trip file.</string>
+    <string name="file_open_failed">Failed to open trip file.</string>
     <string name="deleted_file">Trip file deleted.</string>
     <string name="delete_file_failed">Could not delete trip file.</string>
     

@@ -22,7 +22,11 @@ You can view your trip on a Google map on your device by choosing <b>Map Trip</b
 You can copy the KML blog file manually to do what you choose with it, or you can send it via email
 or wherever your device can send it to by choosing Send Trip from the menu.\n
 \n
-Use <b>Delete Trip</b> to delete existing Trip files.\n
+The <b>Manage Trip</b> menu brings up a sub-menu.\n
+It contains the following commands:\n
+<b>Delete Trip</b> to delete existing Trip files.\n
+\n
+<b>Rename Trip</b> to rename the currently opened Trip file.\n
 \n
 Use <b>Send Feedback</b> to email us any comments or suggestions. Comments go to a public mailing list.\n
 \n
@@ -30,7 +34,7 @@ Happy travelling!\n
 The Travel Blog Team</string>
 
     <string name="help_title">Help</string>
-    
+
     <!--  About Message -->
     <string name="about_message">Travel Blog location app<br/>\n
 <a href="https://code.google.com/p/travel-blog-android/">Source Code and Docs</a>\n
@@ -40,6 +44,14 @@ Copyright 2011 Barkside Apps</string>
 
     <!--  What's New Message -->
     <string name="whatsnew_message"><b>What\'s New</b>\n
+\n
+<b>Version 2.2.0</b>\n
+* App widgets now available, to directly start the New Post editing screen.
+These can be installed on the home screen. Multiple widgets can be installed,
+each one configured to use a specific trip file or to always start New Post using
+the last opened trip.\n
+* User interface updates and bug fixes. Rename Trip command added under a new Manage Trips submenu.
+Editing screens now show the index of the post being edited.\n
 \n
 <b>Version 2.0.1</b>\n
 * Locations are now editable using a map.
@@ -57,4 +69,14 @@ When editing a post, click on location text to bring up a map.\n
 
     <string name="whatsnew_title">What\'s New</string>
         
+    <!--  Widget Configure help message -->
+    <string name="configure_help"><b>Configure Widget</b>\n
+\n
+Select an existing trip file or create a new trip file.\n
+\n
+After completing this install, clicking on the widget will start the New Post editing screen
+for the selected trip file.
+\n</string>
+    <string name="configure_help_title">Widget Configuration Help</string>
+    
 </resources>

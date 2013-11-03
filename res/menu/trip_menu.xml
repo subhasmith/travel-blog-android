@@ -20,9 +20,17 @@
           android:title="@string/menu_open" />
     <item android:id="@+id/new_trip"
           android:icon="@drawable/ic_menu_add"
-          android:title="@string/menu_new" />      
-    <item android:id="@+id/delete_trip"
-          android:title="@string/menu_delete_trip" />      
+          android:title="@string/menu_new"/>
+     <item android:id="@+id/manage_trips"
+          android:title="@string/menu_manage_trips">
+        <menu>
+        <item android:id="@+id/delete_trip"
+              android:title="@string/menu_delete_trip" />      
+        <item android:id="@+id/rename_trip"
+              android:title="@string/menu_rename_trip" />          
+        </menu>
+    </item>
+    
     <item android:id="@+id/settings"
           android:title="@string/menu_settings"/>
     <item android:id="@+id/send_feedback"

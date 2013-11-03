@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <drawable name="widget_startColor">#F114</drawable>    
+    <drawable name="widget_endColor">#D226</drawable>    
+    <drawable name="semitransparent_grey">#8888</drawable>    
+    <drawable name="semitransparent_blue">#866F</drawable>    
+    <drawable name="semitransparent_black">#8000</drawable>    
+    <drawable name="opaque_black">#F000</drawable>    
+    <drawable name="opaque_blue">#F338</drawable>    
+    <drawable name="opaque_white">#FFFF</drawable>
+     
+    <drawable name="divider_color">#8888</drawable>    
+</resources>
