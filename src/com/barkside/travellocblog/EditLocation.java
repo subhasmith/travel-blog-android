@@ -12,6 +12,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
 import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -46,8 +47,6 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
    private LatLng mNewLatLng = null;
    private LatLng mOldLatLng = null;
    
-   private String mNotetitle = null; // Blog Element is a Note, and the Name of that field.
-
    private GoogleMap mMap;
    private Marker mMapMarker;
 
@@ -64,8 +63,10 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
       if (Intent.ACTION_EDIT.equals(action))
       {
          Bundle extras = intent.getExtras();
-         mNotetitle = extras.getString("BLOG_NAME");
-         mOldLatLng = extras.getParcelable("BLOG_LATLNG"); // may be null
+         String filename = extras.getString("BLOG_NAME");
+         String postTitle = extras.getString("POST_NAME");
+         int blogIndex = extras.getInt("POST_INDEX");
+         mOldLatLng = extras.getParcelable("POST_LATLNG"); // may be null
          mNewLatLng = mOldLatLng;
          
          // Restore UI state from the savedInstanceState.
@@ -84,8 +85,20 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
          }
 
          TextView tv = (TextView) findViewById(R.id.show_title);
-         tv.setText(mNotetitle);
+         tv.setText(postTitle);
          
+         // update ActionBar title with blog name
+         // to support SDK 11 and older, need to use getSupportActionBar
+         ActionBar actionBar = getSupportActionBar();
+         actionBar.setTitle(Utils.blogToDisplayname(filename));
+
+         int subtitleId = R.string.edit_location_name_format;
+
+         // Display a subtitle with the 1-based index of the element
+         String subtitle = String.format(getString(subtitleId), blogIndex + 1);
+         actionBar.setSubtitle(subtitle);
+
+         // Finally, show map
          setUpMapIfNeeded();
       }
    }
@@ -154,8 +167,7 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
 
          Intent intent = new Intent();
          Bundle extras = new Bundle();
-         extras.putString("BLOG_NAME", mNotetitle);
-         extras.putParcelable("BLOG_LATLNG", mNewLatLng);
+         extras.putParcelable("POST_LATLNG", mNewLatLng);
          Log.d(TAG, "done with location edit " + mNewLatLng);
          intent.putExtras(extras);
          setResult(RESULT_OK, intent);

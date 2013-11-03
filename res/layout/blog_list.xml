@@ -19,7 +19,7 @@
 	    android:paddingBottom="0dp"	    
         /> 	 
      <TextView 
-     	android:id="@+id/dexcriptionText"
+     	android:id="@+id/descriptionText"
 	    android:layout_width="fill_parent" 
 	    android:layout_height="wrap_content" 
 	    android:ellipsize="end"

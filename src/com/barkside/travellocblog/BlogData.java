@@ -23,14 +23,43 @@ import android.os.Environment;
 import android.util.Log;
 import android.util.Xml;
 
+/** Implementation of BlogData using the filesystem files and folder.
+ * There is usually no need to use this class directly, use BlogDataManager instead.
+ * 
+ * This class is an implementation of the BlogDataManager, one that uses the filesystem
+ * to store each blog as a file. It also provides functions to return directory listings
+ * of blog, etc. Anything that is related to how blogs are stored is here - callers don't
+ * need to know how and where blogs are stored.
+ * 
+ * This class is file location agnostic - caller will send it full file paths, and
+ * full directory paths. So opening a blog, returning list of all blogs, deleting a blog,
+ * all will take pathnames.
+ * 
+ */
+
 public class BlogData
 {
-   private List<BlogElement> mBlogs = new ArrayList<BlogElement>();
-   private String mFile = null;
-   private static final String mPath = TravelLocBlogMain.TRIP_PATH;
+   private List<BlogElement> mBlogPosts = new ArrayList<BlogElement>();
+   
+   // All trip files will be stored in this directory under this app's storage
+   public static final String TRIP_PATH = "/TravelBlog";
 
+   private String mFilename = null;
+   private String mTripRoot = null; // root dir of all the blog/trip files
+   
    // For logging and debugging purposes
    private static final String TAG = "BlogData";
+
+   
+   public BlogData(String tripPath) {
+      super();
+      mTripRoot = tripPath;
+   }
+
+   public BlogData() {
+      super();
+      mTripRoot = TRIP_PATH;
+   }
 
    /*
     * this function closes anything that is already open, then opens new file,
@@ -46,23 +75,23 @@ public class BlogData
       if (filename != null)
       {
          // Log.d(TAG, "Opening file: "+ filename);
-         File newFile = new File(Environment.getExternalStorageDirectory()
-               + mPath);
+         String path = fullBlogPath(filename);
+         File newFile = new File(fullBlogPath(null));
          try
          {
             newFile.mkdirs();
          }
          catch (Exception e)
          {
-            Log.d(TAG, "Failed to open file: " + filename);
+            Log.d(TAG, "Failed to mkdirs: " + path);
          }
       }
 
-      mFile = filename;
-      mBlogs.clear();
+      mFilename = filename;
+      mBlogPosts.clear();
       if (filename != null)
       {
-         return openBlogFromFile();
+         return loadDataFromFile();
       }
       return false;
    }
@@ -82,7 +111,7 @@ public class BlogData
          return false;
       }
       
-      String path = Environment.getExternalStorageDirectory() + mPath + "/" + filename;
+      String path = fullBlogPath(filename);
       // Following file functions throw no exception as long as filename != null
       File file = new File(path);
       boolean status = file.delete();
@@ -91,18 +120,82 @@ public class BlogData
          {
          Log.d(TAG, "Deleted file " + path);
          // Did we delete the current file belonging to this object?
-         if (mFile.equals(filename))
+         if (mFilename.equals(filename))
          {
-            mFile = null;
-            mBlogs.clear();
+            mFilename = null;
+            mBlogPosts.clear();
          }
       }
       return status;
    }
 
-   /* updates element if index valid, otherwise creates new element if index -1 */
+   /* rename current blog */
+   public Boolean renameBlog(String filename, String newname) {
+      File oldfile = blogToFile(filename);
+      File newfile = blogToFile(newname);
+      boolean renamed = false;
+      if (oldfile != null && newfile != null) {
+         renamed = oldfile.renameTo(newfile);
+      }
+      if (renamed)
+      {
+         mFilename = newname;
+      }
+      return renamed;
+   }
 
-   /* updates element if index valid, otherwise creates new element if index -1 */
+
+   /* return true if the given blog exists */
+   public Boolean existingBlog(String filename)
+   {
+      String path = fullBlogPath(filename);
+      return blogToFile(path).exists();
+   }
+
+   public File blogToFile(String filename)
+   {
+      String path = fullBlogPath(filename);
+      // Following file functions throw no exception as long as filename != null
+      return new File(path);
+   }
+
+   public CharSequence[] getBlogsList()
+   {
+      CharSequence[] fileList = null;
+      try
+      {
+         fileList = new File(fullBlogPath(null)).list();
+      }
+      catch (Exception e)
+      {
+         Log.e(TAG, "error occurred while reading file list");
+      }
+      return fileList;
+   }
+
+   /**
+    * Return the full path to the given relative filepath.
+    * 
+    * @param filepath   null to return root dir, otherwise a relative file path
+    * @return full path to file
+    */
+   public String fullBlogPath(String filepath)
+   {
+      // TODO: http://developer.android.com/reference/android/os/Environment.html#getExternalStoragePublicDirectory%28java.lang.String%29
+      // says to not use this directory. But use Context.getExternalFilesDir(null) instead
+      // which is /storage/emulated/0/Android/data/com....travellocblog/files folder.
+      String path = Environment.getExternalStorageDirectory() + mTripRoot;
+      if (filepath != null && !filepath.equals(""))
+      {
+         if (filepath.startsWith("/"))
+            path += filepath;
+         else
+            path += ("/" + filepath);         
+      }
+      return path;
+   }
+
+   /* updates element if index valid, otherwise adds new element */
    public Boolean saveBlogElement(BlogElement blog, int index)
    {
       if (!blog.valid())
@@ -113,35 +206,29 @@ public class BlogData
       // keep user-entered strings unchanged - so no trimming on save of the
       // text fields such as blog.description, etc
 
-      if (index == -1)
+      if (index >= 0 && index < mBlogPosts.size())
       {
-         mBlogs.add(blog);
-         if (saveBlogToFile() == false)
-         {
-            refreshData();
-            return false;
-         }
-         return true;
+         mBlogPosts.set(index, blog);
       }
-      else if (index < mBlogs.size())
+      else
       {
-         mBlogs.set(index, blog);
-         if (saveBlogToFile() == false)
-         {
-            refreshData();
-            return false;
-         }
-         return true;
+         mBlogPosts.add(blog);
       }
-      return false;
+      
+      if (saveBlogToFile() == false)
+      {
+         refreshData();
+         return false;
+      }
+      return true;
    }
 
    /* deletes blog element */
    public Boolean deleteBlogElement(int index)
    {
-      if (index < mBlogs.size())
+      if (index < mBlogPosts.size())
       {
-         mBlogs.remove(index);
+         mBlogPosts.remove(index);
          if (saveBlogToFile() == false)
          {
             refreshData();
@@ -154,19 +241,19 @@ public class BlogData
 
    private void refreshData()
    {
-      mBlogs.clear();
-      openBlogFromFile();
+      mBlogPosts.clear();
+      loadDataFromFile();
    }
 
    public int getMaxBlogElements()
    {
-      return mBlogs.size();
+      return mBlogPosts.size();
    }
 
    public BlogElement getBlogElement(int index)
    {
-      if (index < mBlogs.size())
-         return mBlogs.get(index);
+      if (index < mBlogPosts.size())
+         return mBlogPosts.get(index);
       return null;
    }
 
@@ -191,9 +278,9 @@ public class BlogData
         </Document>
       </kml>    
     */
-   private Boolean openBlogFromFile()
+   private Boolean loadDataFromFile()
    {
-      String path = Environment.getExternalStorageDirectory() + mPath + "/" + mFile;
+      String path = fullBlogPath(mFilename);
       // Dom it up
       try
       {
@@ -296,7 +383,7 @@ public class BlogData
                   }
                }
             }
-            mBlogs.add(blog);
+            mBlogPosts.add(blog);
          }
 
       }
@@ -325,9 +412,9 @@ public class BlogData
       Double previousLon = 0.0;
       Double previousLat = 0.0;
       Boolean previousLocValid = false;
-      for (int i = 0; i < mBlogs.size(); i++)
+      for (int i = 0; i < mBlogPosts.size(); i++)
       {
-         BlogElement blog = (BlogElement) mBlogs.get(i);
+         BlogElement blog = (BlogElement) mBlogPosts.get(i);
          String[] temp;
          Double lat, lon;
          try
@@ -365,8 +452,7 @@ public class BlogData
    /* here we run through the mBlogs data structure and save to XML */
    private Boolean saveBlogToFile()
    {
-      String path = Environment.getExternalStorageDirectory() + mPath + "/"
-            + mFile;
+      String path = fullBlogPath(mFilename);
       File newxmlfile = new File(path);
       try
       {
@@ -416,9 +502,9 @@ public class BlogData
          for (int j = 0; j < 2; j++)
          {
             String previousLocation = null;
-            for (int i = 0; i < mBlogs.size(); i++)
+            for (int i = 0; i < mBlogPosts.size(); i++)
             {
-               BlogElement blog = (BlogElement) mBlogs.get(i);
+               BlogElement blog = (BlogElement) mBlogPosts.get(i);
 
                if ((j == 1) && (i == 0))
                {
@@ -523,7 +609,7 @@ public class BlogData
                {
                   serializer.endTag(null, "Placemark");
                }
-               if ((j == 1) && (i == (mBlogs.size() - 1)))
+               if ((j == 1) && (i == (mBlogPosts.size() - 1)))
                {
                   serializer.endTag(null, "Folder");
                }
@@ -542,6 +628,7 @@ public class BlogData
          Log.e(TAG, "Exception error occurred while creating xml file");
          return false;
       }
+      Log.d(TAG, "Saved file " + path);
       return true;
    }
 

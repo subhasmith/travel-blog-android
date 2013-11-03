@@ -2,8 +2,6 @@ package com.barkside.travellocblog;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.text.method.LinkMovementMethod;
@@ -78,22 +76,11 @@ public class MessagesDialog extends DialogFragment {
       
       getDialog().setTitle(mMessageTitleId);
 
-      String version = "0.0.0"; // to denote unknown version
-      try
-      {
-         PackageInfo pInfo = context.getPackageManager()
-               .getPackageInfo(context.getPackageName(), 0);
-         version = pInfo.versionName;
-      } catch (NameNotFoundException e)
-      {
-         Log.d(TAG, "Failed to get version string " + e);
-      }
-
       // App name and version number
       TextView tv = (TextView) view.findViewById(R.id.app_name);
       tv.setText(R.string.app_name);
       tv = (TextView) view.findViewById(R.id.app_version);
-      tv.setText(version);
+      tv.setText(Utils.getAppVersion(context));
       
       // Display text in Message1 TextView, for example, the Help message
       if (mMessage1Id != 0) {

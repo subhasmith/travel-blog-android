@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:background="@drawable/widget"
+    android:layout_margin="@dimen/widget_margin" >
+
+    <!-- layout for the app widget.
+         textAppearanceSmall is 14sp. Can use textSize="12sp" but that looks too small.
+         xml/widget_info.xml sets the size of this widget, no need to size layout here.
+         Approx: 1 cell minWidth/minHeight: 40dp, 2: 110dp, 3: 180dp
+         Too big: 110dp x 110dp 2 x 2 cells
+         Using:   110dp x 40dp 2 x 1 cells with side-by-side text and icon
+         Allow manual resize to make it 1 x 1 cell minimum. -->
+         
+    <!-- Divider. Can't use View for Widget, so using ImageView instead -->
+    <ImageView
+        android:id="@+id/widget_divider1"
+        style="@style/divider"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:layout_alignParentTop="true"
+        android:contentDescription="@string/menu_new_post"
+        android:paddingBottom="4dp"
+        android:paddingLeft="4dp"
+        android:paddingRight="4dp"
+        android:paddingTop="2dp"
+        android:scaleType="fitXY" />
+    
+   <ImageView
+        android:id="@+id/widget_new_post"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/widget_click_text"
+        android:layout_below="@id/widget_divider1"
+        android:src="@drawable/ic_widget_place_new"
+        android:contentDescription="@string/menu_new_post"
+        android:paddingTop="0dp"
+        android:paddingBottom="0dp"/>
+    
+    <!-- Divider. Can't use View for Widget, so using ImageView instead -->
+    <ImageView
+        android:id="@+id/widget_divider2"
+        style="@style/divider"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:layout_below="@id/widget_new_post"
+        android:contentDescription="@string/menu_new_post"
+        android:paddingLeft="4dp"
+        android:paddingRight="4dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="4dp"
+        android:scaleType="fitXY" />
+    
+    <TextView
+        android:id="@+id/widget_tripname"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/widget_divider2"
+        android:ellipsize="end"
+        android:paddingTop="0dp"
+        android:gravity="center"
+        android:lines="1"
+        android:textAppearance="?android:attr/textAppearanceSmall" />
+    
+</RelativeLayout>

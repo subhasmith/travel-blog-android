@@ -128,7 +128,7 @@ public abstract class LocationUpdates extends ActionBarActivity implements
     private LocationRequest mLocationRequest;
 
     // Stores the current instantiation of the location client in this object
-    private LocationClient mLocationClient;
+    private LocationClient mLocationClient = null;
 
     // Handles to UI widgets - usually created by the derived concrete class
     private ProgressBar mActivityIndicator;
@@ -233,7 +233,7 @@ public abstract class LocationUpdates extends ActionBarActivity implements
            mExpirationTime = SystemClock.uptimeMillis() + durationMillis;
         }
         
-        if (durationSecs > 0) {
+        if (durationSecs > 0 && mLocationClient != null) {
            Log.d(TAG, "Starting location timer for seconds: " + durationSecs);
            Log.d(TAG, "Starting location timer to time: " + mExpirationTime);
 
@@ -287,7 +287,9 @@ public abstract class LocationUpdates extends ActionBarActivity implements
         stopPeriodicUpdates();
 
         // After disconnect() is called, the client is considered "dead".
-        mLocationClient.disconnect();
+        if (mLocationClient != null) {
+           mLocationClient.disconnect();           
+        }
         
         // In case any callbacks are still around, remove all.
         timerHandler.removeCallbacksAndMessages(null);
@@ -315,9 +317,14 @@ public abstract class LocationUpdates extends ActionBarActivity implements
         /*
          * Connect the client. Don't re-start any requests here;
          * instead, wait for onResume()
+         * Issue report#8 reported a NullPointerException
+         * at com.barkside.travellocblog.LocationUpdates.onStart
+         * Cannot reproduce it, web search seems to suggest may happen when Google Play
+         * is not installed? In any case, we check for it here.
          */
-        mLocationClient.connect();
-
+        if (mLocationClient != null) {
+           mLocationClient.connect();           
+        }
     }
     /*
      * Called when the system detects that this Activity is now visible.
@@ -442,7 +449,7 @@ public abstract class LocationUpdates extends ActionBarActivity implements
 
        Location location = null;
         // If Google Play Services is available
-        if (servicesConnected()) {
+        if (servicesConnected() && mLocationClient != null) {
 
             // Get the current location
             location = mLocationClient.getLastLocation();
@@ -493,7 +500,7 @@ public abstract class LocationUpdates extends ActionBarActivity implements
             return;
         }
 
-        if (servicesConnected()) {
+        if (servicesConnected() && mLocationClient != null) {
 
             // Get the current location
             Location currentLocation = mLocationClient.getLastLocation();
@@ -608,7 +615,9 @@ public abstract class LocationUpdates extends ActionBarActivity implements
         
         // This can be called multiple times - if called again, will just replace
         // the old listener with "this" object.
-        mLocationClient.requestLocationUpdates(mLocationRequest, this);
+        if (mLocationClient != null) {
+           mLocationClient.requestLocationUpdates(mLocationRequest, this);           
+        }
     }
 
     protected boolean updatesRequested() {
@@ -629,7 +638,7 @@ public abstract class LocationUpdates extends ActionBarActivity implements
         Log.d(TAG, "stopping periodic updates");
         // Remove all location updates, ok to call multiple times, just removes
         // whatever listener has been attached by requestLocationUpdates.
-        if (mLocationClient.isConnected()) {
+        if (mLocationClient != null && mLocationClient.isConnected()) {
             mLocationClient.removeLocationUpdates(this);
         }
     }
