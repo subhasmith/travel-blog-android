@@ -14,6 +14,7 @@
     <string name="widget_new_post_name">Travel Blog New Post</string>
     <string name="help_dialog_title">Help Message</string>
     <string name="widget_configure_title">Configure Widget</string>
+    <string name="import_trip_name">Travel Blog Import</string>
     
     <!-- Longitude, Latitude format (order is same as KML coordinates element) -->
     <string name="longitude_latitude_format">%1$.4f, %2$.4f</string>
@@ -60,8 +61,9 @@
     <string name="file_suffix">.kml</string>
     <string name="file_name_hint">Filename</string>
     <string name="are_you_sure">Confirmation</string>
-    <string name="are_you_sure_file">Delete the file %1$s?</string>
+    <string name="are_you_sure_delete">Delete the file %1$s?</string>
     <string name="are_you_sure_post">Delete this post?</string>
+    <string name="are_you_sure_overwrite">Replace existing file %1$s?</string>
     <string name="map_not_ready">Map is not fully loaded yet</string>
     <string name="app_name_version_format">%1$s (Version %2$s)</string>
     <string name="about_notices_label">COPYRIGHT NOTICES</string>
@@ -81,10 +83,15 @@
         is used in the feedback message.\n\nContinue with feedback?</string>
     <string name="feedback_cancel">Feedback cancelled.</string>
     
+    <string name="import_from_caption">Import file:</string>
+    <string name="import_as_caption">Save as:</string>
+    <string name="import_from_format">&#x2026;/%1$s</string>  <!--  x2026 is ... -->
+    <string name="overwrite_file">Overwrite file, if necessary?</string>
+    
     <string name="share_subject_line">Your Travel Blog KML file is attached</string>
     <string name="share_body_text">Filename: %1$s\n---\nThank you for using Travel Blog.</string>
     <string name="share_prompt">Choose how to send your trip KML file:</string>
-    <string name="widget_done_format">Use: %1$s</string>
+    <string name="widget_done_format">Use %1$s</string>
     <string name="widget_last_opened_trip">last opened trip each time</string>
     
     <!-- Settings (Preferences) strings -->
@@ -110,14 +117,17 @@
     <string name="invalid_filename_message">Invalid filename. Disallowed characters: (%1$s).</string>
     <string name="invalid_filename_exists">File name exists, cannot overwrite.</string>
     <string name="failed_file_create">Failed to create new file.</string>
-    <string name="open_failed_one_file">Failed to open file (%1$s).</string>
-    <string name="open_failed_both_files">Failed to open requested (%1$s) and default (%2$s) files.</string>
+    <string name="open_failed_one_file">"Failed to open file '%1$s'."</string>
+    <string name="open_failed_both_files">"Failed to open requested '%1$s' and default '%2$s' files."</string>
     <string name="failed_file_rename">Failed to rename file.</string>
     <string name="map_trip_empty">Map has no locations to show.</string>
     <string name="last_file_open_failed">Failed to open last used trip file.</string>
     <string name="file_open_failed">Failed to open trip file.</string>
     <string name="deleted_file">Trip file deleted.</string>
     <string name="delete_file_failed">Could not delete trip file.</string>
+    <string name="file_import_load_failed">Failed to import KML file - incompatible data.</string>
+    <string name="file_import_save_failed">Failed to save imported trip.</string>
+    <string name="file_imported">Imported trip successfully.</string>
     
     <string name="final_fallback_lnglat">0,51</string>
     <string name="no_location_fix_no_default">No location fix found. No previous entry. Using location 0,51.</string>

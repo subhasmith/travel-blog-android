@@ -1,10 +1,13 @@
 package com.barkside.travellocblog;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -87,20 +90,31 @@ public class BlogData
          }
       }
 
-      mFilename = filename;
-      mBlogPosts.clear();
+      clearBlog();
       if (filename != null)
       {
+         mFilename = filename;
          return loadDataFromFile();
       }
       return false;
+   }
+   
+   /** Open blog from given stream. Mark blog name as unknown.
+    * This is a readonly stream, cannot call saveBlogElement but can
+    * call saveBlogToFile to save to a new file.
+    * 
+    */
+   public Boolean openBlog(InputStream stream)
+   {
+      clearBlog();
+      return loadDataFromStream(stream);
    }
 
    /* for a new blog, we simply open it, and save it */
    public Boolean newBlog(String filename)
    {
       privOpenFile(filename);
-      return saveBlogToFile();
+      return saveBlogToFile(filename);
    }
 
    /* delete the given blog */
@@ -122,8 +136,7 @@ public class BlogData
          // Did we delete the current file belonging to this object?
          if (mFilename.equals(filename))
          {
-            mFilename = null;
-            mBlogPosts.clear();
+            clearBlog();
          }
       }
       return status;
@@ -144,12 +157,15 @@ public class BlogData
       return renamed;
    }
 
+   public void clearBlog() {
+      mFilename = "";
+      mBlogPosts.clear();
+   }
 
    /* return true if the given blog exists */
    public Boolean existingBlog(String filename)
    {
-      String path = fullBlogPath(filename);
-      return blogToFile(path).exists();
+      return blogToFile(filename).exists();
    }
 
    public File blogToFile(String filename)
@@ -179,7 +195,7 @@ public class BlogData
     * @param filepath   null to return root dir, otherwise a relative file path
     * @return full path to file
     */
-   public String fullBlogPath(String filepath)
+   private String fullBlogPath(String filepath)
    {
       // TODO: http://developer.android.com/reference/android/os/Environment.html#getExternalStoragePublicDirectory%28java.lang.String%29
       // says to not use this directory. But use Context.getExternalFilesDir(null) instead
@@ -215,7 +231,7 @@ public class BlogData
          mBlogPosts.add(blog);
       }
       
-      if (saveBlogToFile() == false)
+      if (saveBlogToFile(mFilename) == false)
       {
          refreshData();
          return false;
@@ -229,7 +245,7 @@ public class BlogData
       if (index < mBlogPosts.size())
       {
          mBlogPosts.remove(index);
-         if (saveBlogToFile() == false)
+         if (saveBlogToFile(mFilename) == false)
          {
             refreshData();
             return false;
@@ -278,23 +294,21 @@ public class BlogData
         </Document>
       </kml>    
     */
-   private Boolean loadDataFromFile()
+   private Boolean loadDataFromStream(InputStream is)
    {
-      String path = fullBlogPath(mFilename);
       // Dom it up
+      // Create instance of DocumentBuilderFactory
+      DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+
+      InputStream bis = null;
+
       try
       {
-         File file = new File(path);
-
-         if (file.exists() == false)
-            return false;
-         // Create instance of DocumentBuilderFactory
-         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+         bis = new BufferedInputStream(is);
 
          // Get the DocumentBuilder
          DocumentBuilder docBuilder = factory.newDocumentBuilder();
-
-         Document dom = docBuilder.parse(file);
+         Document dom = docBuilder.parse(bis);
          
          if (dom == null)
             return false;
@@ -401,10 +415,33 @@ public class BlogData
           */
          return false;
       }
-      Log.d(TAG, "Loaded file " + path);
+      finally {
+         if (bis != null) {
+            try {
+               bis.close();
+            } catch (IOException e) {
+               Log.e(TAG, e.getMessage());
+            }
+         }
+      }
+
+      Log.d(TAG, "Loaded KML from stream ");
       return true;
    }
 
+   // Load data from mFileName into mBlogPosts etc
+   private Boolean loadDataFromFile()
+   {
+      String path = fullBlogPath(mFilename);
+      File file = new File(path);
+      try {
+         return loadDataFromStream(new FileInputStream(file));
+      }
+      catch (FileNotFoundException e) {
+         return false;
+      }
+   }
+   
    /* Only used for the overall trip stats - rudimentary stuff */
    public float getTotalDistance()
    {
@@ -450,9 +487,9 @@ public class BlogData
    }
 
    /* here we run through the mBlogs data structure and save to XML */
-   private Boolean saveBlogToFile()
+   public Boolean saveBlogToFile(String blogname)
    {
-      String path = fullBlogPath(mFilename);
+      String path = fullBlogPath(blogname);
       File newxmlfile = new File(path);
       try
       {

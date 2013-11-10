@@ -79,13 +79,10 @@ public class EditBlogElement extends LocationUpdates
    // Settings value
    private int mUpdatesDuration = 0; // 0 means no auto-off
    
-   private BlogDataManager mBlogData = BlogDataManager.getInstance();
+   private BlogDataManager mBlogMgr = BlogDataManager.getInstance();
 
    // Internal request code for sub-activity
    private final int EDIT_LOCATION_REQUEST = 100;
-
-   // Opened blog full file name
-   private String mBlogname;
 
    // Index of blog element/post being edited/created
    private int mEditItem;
@@ -125,8 +122,9 @@ public class EditBlogElement extends LocationUpdates
       String action = intent.getAction();
       if (!Intent.ACTION_INSERT_OR_EDIT.equals(action))
       {
-         Log.e(TAG, "bad action, finishing " + action);
+         Log.e(TAG, "bad action, unsuported " + action);
          finish();
+         return;
       }
 
       mBestLocation = null;
@@ -143,20 +141,21 @@ public class EditBlogElement extends LocationUpdates
       }
       
       Uri uri = intent.getData();
-      mBlogname = Utils.openBlogFromIntent(this, uri, mBlogData);
-      if (mBlogname == null)
+      String blogname = Utils.openBlogFromIntent(this, uri, mBlogMgr);
+      if (blogname == null)
       {
          // If we could not open requested file or the default file, we have
          // nothing to do, so have to error out.
          // Toast is shown by the openBlogFromIntent function.
          Log.e(TAG, "bad blogname, finishing " + uri);
          finish();
+         return;
       }
 
       // update ActionBar title with blog name
       // to support SDK 11 and older, need to use getSupportActionBar
       ActionBar actionBar = getSupportActionBar();
-      actionBar.setTitle(Utils.blogToDisplayname(mBlogname));
+      actionBar.setTitle(Utils.blogToDisplayname(blogname));
       int subtitleId = 0; // screen subtitle R.string resource id
 
       // Entry to edit, or -1 or no id to create new post
@@ -194,10 +193,10 @@ public class EditBlogElement extends LocationUpdates
          // If we don't get a starting location, use a fallback location
          // based on last created entry.
          String fallbackLngLat = "";
-         int elementCount = mBlogData.getMaxBlogElements();
+         int elementCount = mBlogMgr.getMaxBlogElements();
          if (elementCount > 0)
          {
-            BlogElement blog = mBlogData.getBlogElement(elementCount - 1);
+            BlogElement blog = mBlogMgr.getBlogElement(elementCount - 1);
             fallbackLngLat = blog.location;
          }
 
@@ -209,7 +208,7 @@ public class EditBlogElement extends LocationUpdates
       {
          // Requested to edit: set that state, and the data being edited.
          mIsNewBlog = false;
-         BlogElement blog = mBlogData.getBlogElement(mEditItem);
+         BlogElement blog = mBlogMgr.getBlogElement(mEditItem);
 
          mTitle = blog.title;
          String descr = blog.description;
@@ -346,7 +345,7 @@ public class EditBlogElement extends LocationUpdates
       // Start new edit location activity
       Intent i = new Intent(this, EditLocation.class);
       Bundle b = new Bundle();
-      b.putString("BLOG_NAME", mBlogname);
+      b.putString("BLOG_NAME", mBlogMgr.openedName());
       b.putString("POST_NAME", mTitle);
       b.putInt("POST_INDEX", mEditItem);
       LatLng latlng = getCurrentLatLng();
@@ -409,7 +408,7 @@ public class EditBlogElement extends LocationUpdates
          Log.d(TAG, "Edit done, title: (" + title + ") location: " + locString);
          Log.d(TAG, "Edit done, location: " + blog.location);
 
-         if (mBlogData.saveBlogElement(blog, mEditItem) == true)
+         if (mBlogMgr.saveBlogElement(blog, mEditItem) == true)
          {
             setResult(RESULT_OK);
             Toast.makeText(this, R.string.post_saved,
@@ -680,7 +679,7 @@ public class EditBlogElement extends LocationUpdates
             case DialogInterface.BUTTON_POSITIVE:
                setResult(TravelLocBlogMain.RESULT_DELETE_POST);
                Log.d(TAG, "Got delete post " + mEditItem);
-               if (EditBlogElement.deletePost(context, mEditItem, mBlogData))
+               if (EditBlogElement.deletePost(context, mEditItem, mBlogMgr))
                {
                   sendResult(); // finishes activity                  
                }

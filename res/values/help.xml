@@ -45,11 +45,14 @@ Copyright 2011 Barkside Apps</string>
     <!--  What's New Message -->
     <string name="whatsnew_message"><b>What\'s New</b>\n
 \n
-<b>Version 2.2.0</b>\n
+<b>Version 2.2.0</b>\n\n
 * App widgets now available, to directly start the New Post editing screen.
 These can be installed on the home screen. Multiple widgets can be installed,
 each one configured to use a specific trip file or to always start New Post using
 the last opened trip.\n
+\n
+* Importing capability added. Other Android applications can now send .kml files to this app.\n
+\n
 * User interface updates and bug fixes. Rename Trip command added under a new Manage Trips submenu.
 Editing screens now show the index of the post being edited.\n
 \n
@@ -71,12 +74,44 @@ When editing a post, click on location text to bring up a map.\n
         
     <!--  Widget Configure help message -->
     <string name="configure_help"><b>Configure Widget</b>\n
+\nThe full <a href="https://code.google.com/p/travel-blog-android/wiki/UserGuide#Widgets">User Guide - Widgets</a>
+is on the web.\n
 \n
-Select an existing trip file or create a new trip file.\n
+This widget allows direct access to the New Post screen.\n
+\n
+It can be configured to always use a specific selected trip file, or to use the default
+last opened trip file of the Travel Blog application.\n
+\n
+First pick the appropriate choice of trip files: app default trip, or selected trip.\n
+\n
+If you chose selected trip, then the two buttons Select Trip and New Trip become usable.
+Use Select Trip button to select an existing trip file. Use New Trip button to create
+a new trip file and select it.\n
+\n
+After the correct option or trip is selected, complete the configuration by clicking on
+the Use [selected option] button. This will exit the configuration and install the widget.
 \n
 After completing this install, clicking on the widget will start the New Post editing screen
-for the selected trip file.
+for the selected trip file or last opened trip file.\n
+\n
+The widget can also be resized as needed. Long-click on the widget will bring up the Android
+resize handles, and then follow usual Android steps to resize the widget as desired.
+The widget can be reduced to 1x1 cell if needed.
 \n</string>
     <string name="configure_help_title">Widget Configuration Help</string>
+    
+    <string name="import_help"><b>Import</b>\n
+Import .KML files into the Travel Blog application.\n
+\n
+\nThe full <a href="https://code.google.com/p/travel-blog-android/wiki/UserGuide#Import">User Guide - Import</a>
+is on the web.\n
+\n
+Save File As:\n
+Enter the name of the trip file to use for saving the imported data.\n
+\n
+Click on <b>Save</b> to save the imported data.\n
+Click on <b>Cancel</b> to cancel the import.</string>
+
+    <string name="import_help_title">Travel Blog Import Help</string>
     
 </resources>

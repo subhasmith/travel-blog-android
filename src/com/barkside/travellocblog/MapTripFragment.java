@@ -28,69 +28,77 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import android.annotation.SuppressLint;
-import android.content.Intent;
+import android.content.Context;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.app.NavUtils;
-import android.support.v4.app.TaskStackBuilder;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
 import android.widget.Toast;
 
 /**
- * Activity to display all the blog entry locations on a map.
+ * Fragment to display all the blog entry locations on a map.
  * 
  * Map code taken from
  * android-sdks/extras/google/google_play_services/samples/maps/
  * src/com/example/mapdemo/MarkerDemo java file.
  * 
+ * Note: use getChildFragmentManager() to add SupportMapFragment not through xml inflate.
+ * http://developer.android.com/about/versions/android-4.2.html#NestedFragments
+ * 
  */
-public class TripMapView extends ActionBarActivity {
+public class MapTripFragment extends SupportMapFragment {
    // For logging and debugging purposes
-   private static final String TAG       = "TripMapView";
+   private static final String TAG       = "MapTripFragment";
 
    private GoogleMap           mMap;
-   private BlogDataManager     mBlogData = BlogDataManager.getInstance();
+   private BlogDataManager     mBlogMgr = BlogDataManager.getInstance();
+   private Uri                 mUri;
 
    private BitmapDescriptor    mIcon     = null;
    private BitmapDescriptor    mIconFirst= null;
+   
+   /**
+    * Create a new instance of MyFragment that will be initialized
+    * with the given arguments.
+    */
+   static MapTripFragment newInstance(Uri uri) {
+      MapTripFragment f = new MapTripFragment();
+      Bundle b = new Bundle();
+      b.putParcelable("BLOG_URI", uri);
+      f.setArguments(b);
+      Log.d(TAG, "newInstance " + f);
+      return f;
+   }
+
 
    @Override
    public void onCreate(Bundle savedInstanceState) {
+      Log.d(TAG, "onCreate ");
       super.onCreate(savedInstanceState);
-      setContentView(R.layout.map_trip);
+      
+      Context context = getActivity();
+      final Bundle args = getArguments();
+      if (args != null) {
+          mUri = args.getParcelable("BLOG_URI");
+      }
 
-      Intent intent = getIntent();
-      
-      Log.d(TAG, "intent data " + intent.getDataString());
-      
-      /* Get the filename from the Uri */
-      Uri uri = intent.getData();
+      Uri uri = mUri;
       Log.d(TAG, "got uri " + uri);
       String filename = Utils.uriToBlogname(uri);
       Log.d(TAG, "uri to blogname " + filename);
+      boolean opened = false;
+      opened = mBlogMgr.openBlog(context, uri);
 
-      // If this is ACTION_SEND, then filename needs to be copied and then used.
-      // Otherwise, we assume it is an internal implicit intent with blogname.
-      if ((mBlogData.openBlog(filename) == false)) {
-         Toast.makeText(this, R.string.file_open_failed,
+      // This should never happen - since the caller activity also opens the file
+      // and only calls this fragment if it was not opened... but just to be safe...
+      if (!opened) {
+         // Failed to open requested file.
+         Toast.makeText(context, R.string.file_open_failed,
                Toast.LENGTH_SHORT).show();
       }
-
-
-      // update ActionBar title with blog name
-      // to support SDK 11 and older, need to use getSupportActionBar
-      ActionBar actionBar = getSupportActionBar();
-      actionBar.setTitle(Utils.blogToDisplayname(filename));
-      actionBar.setDisplayHomeAsUpEnabled(true);
 
       /* use one pointer for the first location, and another for the rest */
       mIconFirst = BitmapDescriptorFactory.fromResource(R.drawable.marker_green_go);
@@ -128,8 +136,7 @@ public class TripMapView extends ActionBarActivity {
       // map.
       if (mMap == null) {
          // Try to obtain the map from the SupportMapFragment.
-         mMap = ((SupportMapFragment) getSupportFragmentManager()
-               .findFragmentById(R.id.map_trip)).getMap();
+         mMap = super.getMap();
          // Check if we were successful in obtaining the map.
          if (mMap != null) {
             setUpMap();
@@ -160,12 +167,16 @@ public class TripMapView extends ActionBarActivity {
       Use new Thread() and runOnUiThread or use AsyncThread for loading markers, if needed.
     */
 
+      int count = mBlogMgr.getMaxBlogElements();
+      if (count <= 0) {
+         return;
+      }
       LatLngBounds.Builder bounds = new LatLngBounds.Builder();
       PolylineOptions polylineOptions = new PolylineOptions();
       BitmapDescriptor icon = mIconFirst; 
 
-      for (int i = 0; i < mBlogData.getMaxBlogElements(); ++i) {
-         BlogElement blog = mBlogData.getBlogElement(i);
+      for (int i = 0; i < mBlogMgr.getMaxBlogElements(); ++i) {
+         BlogElement blog = mBlogMgr.getBlogElement(i);
          if ((blog.title == null) || (blog.location == null)
                || (blog.location.length() == 0) || (blog.title.length() == 0)) {
             continue;
@@ -200,8 +211,8 @@ public class TripMapView extends ActionBarActivity {
       // fit map to points. Pan to see all markers in view.
       // Cannot zoom to bounds until the map has a size, so have to do this:
       Log.d(TAG, "addMarkers bounds = " + bounds.build());
-      final View mapView = getSupportFragmentManager().findFragmentById(
-            R.id.map_trip).getView();
+      
+      final View mapView = getView();
       final LatLngBounds boundsB = bounds.build();
       if (mapView.getViewTreeObserver().isAlive()) {
          mapView.getViewTreeObserver().addOnGlobalLayoutListener(
@@ -225,48 +236,6 @@ public class TripMapView extends ActionBarActivity {
                            boundsB, 50));
                   }
                });
-      }
-   }
-   
-   @Override
-   public boolean onCreateOptionsMenu(Menu menu)
-   {
-      MenuInflater inflater = getMenuInflater();
-      inflater.inflate(R.menu.map_trip, menu);
-      
-      return true;
-   }
-
-   @Override
-   public boolean onOptionsItemSelected(MenuItem item)
-   {
-      switch (item.getItemId())
-      {
-         case R.id.send_feedback:
-            Utils.sendFeedback(this, TAG);
-            return true;
-       case R.id.help:
-            Utils.showHelp(getSupportFragmentManager());
-            return true;
-            // Respond to the action bar's Up/Home button
-       case android.R.id.home:
-          Intent upIntent = NavUtils.getParentActivityIntent(this);
-          if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
-              // This activity is NOT part of this app's task, so create a new task
-              // when navigating up, with a synthesized back stack.
-              TaskStackBuilder.create(this)
-                      // Add all of this activity's parents to the back stack
-                      .addNextIntentWithParentStack(upIntent)
-                      // Navigate up to the closest parent
-                      .startActivities();
-          } else {
-              // This activity is part of this app's task, so simply
-              // navigate up to the logical parent activity.
-              NavUtils.navigateUpTo(this, upIntent);
-          }
-          return true;
-         default:
-            return super.onOptionsItemSelected(item);
       }
    }
 

@@ -47,11 +47,12 @@ public enum Utils {
       String defaultTrip = context.getString(R.string.default_trip);
 
       String blogname = Utils.displayToBlogname(defaultTrip);
+      Uri uri = Utils.blognameToUri(blogname);
       boolean opened = true;
       Log.d(TAG, "Exists file ?" + blogMgr.existingBlog(blogname));
 
       if (blogMgr.existingBlog(blogname)) {
-         opened = blogMgr.openBlog(blogname);
+         opened = blogMgr.openBlog(context, uri);
       } else {
          opened = blogMgr.newBlog(blogname);
       }
@@ -74,19 +75,22 @@ public enum Utils {
       if (blogname == null)
       {
          blogname = settings.getString(SettingsActivity.LAST_OPENED_TRIP_KEY, null);
-         Log.d(TAG, "Using last opened file " +  blogname);
+         if (blogname != null && blogname.isEmpty()) blogname = null;
+         Log.d(TAG, "Trying last opened file: " +  blogname);
       }
       if (blogname == null)
       {
          // versionCode 5 (version 1.7) or older
          settings = context.getSharedPreferences(TravelLocBlogMain.PREFS_NAME, 0);
          blogname = settings.getString("defaultTrip", null);
+         if (blogname != null && blogname.isEmpty()) blogname = null;
       }
       if (blogname == null)
       {
          blogname = context.getString(R.string.default_trip);
+         if (blogname != null && blogname.isEmpty()) blogname = null;
       }
-      Log.d(TAG, "To open file " + blogname);
+      Log.d(TAG, "getBlognameFromIntent returns: " + blogname);
       return blogname;
    }
 
@@ -98,7 +102,9 @@ public enum Utils {
       String firstname = Utils.getBlognameFromIntent(context, uri);
       String secondname = null;
       String blogname = firstname;
-      boolean opened = blogMgr.openBlog(firstname);
+      Uri blogUri = Utils.blognameToUri(blogname);
+      boolean opened = blogMgr.openBlog(context, blogUri);
+      
       if (!opened) {
          // If we are trying to open default name and it is not present,
          // we try to create that file.
@@ -302,24 +308,22 @@ public enum Utils {
             name = name.substring(0, idIndex);
       }
 
-      // Since all Uris are generated internally, we only look at scheme.
+      // Check if Uri has been generated internally.
+      String authority = uri.getAuthority();
+      boolean isInternal = ContentResolver.SCHEME_CONTENT.equalsIgnoreCase(scheme)
+            && AUTHORITY.equalsIgnoreCase(authority);
       
-      if (ContentResolver.SCHEME_CONTENT.equalsIgnoreCase(scheme)) {
+      if (isInternal) {
          // remove leading / if any
          if (name.startsWith("/")) name = name.substring(1);
          if (name.indexOf('/') >= 0) {
-            throw new IllegalArgumentException("Uri not a filename: " + name);
+            throw new IllegalArgumentException("Uri a path? Not a filename: " + name);
          }
          return name;
-      } else if (ContentResolver.SCHEME_FILE.equalsIgnoreCase(scheme)) {
-         // assume this is a full path name, and return that
-         // TODO: this is likely not needed, and should not be used.
-         // Copy external files into app directory, and use them from there.
-         // return name;
-         throw new IllegalArgumentException("Uri unsupported: " + scheme);
-      } else {
-         throw new IllegalArgumentException("Uri unsupported: " + scheme);
       }
+      // Not an internal Uri, caller should use ContentResolver to convert
+      // to InputFileStream etc.
+      return "";
    }
 
    // Uri can be: content://authority/path or content://authority/path/id
