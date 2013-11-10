@@ -74,7 +74,7 @@
             android:theme="@style/Theme.AppCompat"
             android:configChanges="orientation" />
         <activity
-            android:name=".TripMapView"
+            android:name=".MapTrip"
             android:label="@string/map_trip_name"
             android:theme="@style/Theme.AppCompat"
             android:configChanges="orientation" >
@@ -109,6 +109,21 @@
                   android:label="@string/widget_configure_title">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
+        
+        <!-- receive ACTION_SEND to import a KML file -->
+        <activity
+            android:name=".ImportTrip"
+            android:label="@string/import_trip_name"
+            android:theme="@style/Theme.AppCompat"
+            android:screenOrientation="portrait" >
+            <!--  Accept .kml files from other Android apps -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <data android:mimeType="application/vnd.google-earth.kml+xml"/>
+                <data android:mimeType="text/*" android:pathPattern=".*\\.kml"/>
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

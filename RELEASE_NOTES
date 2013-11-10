@@ -15,6 +15,9 @@ November 2013
    an existing trip file, or create a new trip file, or to use the app default last used
    trip file on widget click.
    
+ * Importing capability added. Other Android applications can now send .kml files to this app.
+   This screen will show the imported KML data on a map, with a Save As file name option.   
+   
  * The EditBlogElement activity now shows a appropriate subtitle - "New Post" or "Edit Post"
    as appropriate. It also shows the index number of the entry being added or edited.
    Edit Location screen also shows the same number.
@@ -38,6 +41,9 @@ November 2013
    Intent.ACTION_INSERT_OR_EDIT.
 
  * Updated a bunch of drawable ic_ icons. Added ic_action_done checkmark.
+ 
+ * MapTripFragment is now a fragment, and the code/UI for this fragment is loaded into
+   two activities - the Map Trip screen, and the Import Trip screen.
 
 Version 2.0.1
 ============

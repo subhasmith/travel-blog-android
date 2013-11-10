@@ -55,7 +55,7 @@ public class TravelLocBlogMain extends ActionBarActivity
    // For logging and debugging purposes
    private static final String TAG = "TravelLocBlogMain";
 
-   private BlogDataManager mBlogData = BlogDataManager.getInstance();
+   private BlogDataManager mBlogMgr = BlogDataManager.getInstance();
 
    public static final int NEW_BLOG_ENTRY = 100;
    public static final int EDIT_BLOG_ENTRY = 111;
@@ -69,9 +69,6 @@ public class TravelLocBlogMain extends ActionBarActivity
    
    // Named preference file use deprecated - see SettingsActivity class comments.
    public static final String PREFS_NAME = "MyPrefsFile"; // deprecated as of versionCode 6
-   
-   private CharSequence[] mFileList;
-   private String mBlogname = null;
    
    private boolean mShowWhatsnew = false;
    
@@ -99,17 +96,17 @@ public class TravelLocBlogMain extends ActionBarActivity
       Intent intent = getIntent();
       Uri uri = intent.getData();
       Log.d(TAG, " Got Uri " +  uri);
-
-      mBlogname = Utils.openBlogFromIntent(this, uri, mBlogData);
-      if (mBlogname == null)
+      
+      String blogname = Utils.openBlogFromIntent(this, uri, mBlogMgr);
+      if (blogname == null)
       {
-         // Could not open either named file, or default file. App is unusable.
-         Log.w(TAG, "Failed to open any file including default - app is unusable.");
-         mBlogname = "";
+         // Could not open either named file, or default file.
+         Log.w(TAG, "Failed to open any file including default.");
+         blogname = "";
       }
-      setOpenedFile(mBlogname);         
+      setOpenedFile(blogname);         
 
-      Log.d(TAG, "onCreate file opened " + mBlogname);
+      Log.d(TAG, "onCreate file opened " + blogname);
       SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
       
       // All new (Oct 2013+) settings always use standard default settings location
@@ -141,13 +138,13 @@ public class TravelLocBlogMain extends ActionBarActivity
    /* Called to edit a blog post, by passing extras in a bundle */
    private void editBlogEntry(int index)
    {
-      if ((index >= mBlogData.getMaxBlogElements()) || (index < 0))
+      if ((index >= mBlogMgr.getMaxBlogElements()) || (index < 0))
       {
          Log.d(TAG, "Edit Log Entry illegal: " + index);
          return;
       }
       Intent i = new Intent(this, EditBlogElement.class);
-      Uri uri = Utils.blognameToUri(mBlogname);
+      Uri uri = mBlogMgr.openedUri();
       uri = ContentUris.withAppendedId(uri, index);
       i.setData(uri);
 
@@ -161,7 +158,7 @@ public class TravelLocBlogMain extends ActionBarActivity
    private void newBlogEntry()
    {
       Intent i = new Intent(this, EditBlogElement.class);
-      Uri uri =  Utils.blognameToUri(mBlogname);
+      Uri uri = mBlogMgr.openedUri();
       i.setData(uri);
       i.setAction(Intent.ACTION_INSERT_OR_EDIT);
       Log.d(TAG, "New Log Entry");
@@ -207,12 +204,13 @@ public class TravelLocBlogMain extends ActionBarActivity
     */
    void refreshList()
    {
-      Log.d(TAG, "refreshList " + mBlogname);
+      String blogname = mBlogMgr.openedName();
+      Log.d(TAG, "refreshList " + blogname);
       BlogListAdapter adapter = new BlogListAdapter(this);
       mBlogList.setAdapter(adapter);
-      for (int i = 0; i < mBlogData.getMaxBlogElements(); i++)
+      for (int i = 0; i < mBlogMgr.getMaxBlogElements(); i++)
       {
-         BlogElement blog = mBlogData.getBlogElement(mirrorElement(i));
+         BlogElement blog = mBlogMgr.getBlogElement(mirrorElement(i));
          adapter.addItem(new BlogListData(blog.title, blog.description));
       }
       mBlogList.setAdapter(adapter);
@@ -220,14 +218,14 @@ public class TravelLocBlogMain extends ActionBarActivity
       // update ActionBar title with blog name
       // to support SDK 11 and older, need to use getSupportActionBar
       ActionBar actionBar = getSupportActionBar();
-      actionBar.setTitle(Utils.blogToDisplayname(mBlogname));
+      actionBar.setTitle(Utils.blogToDisplayname(blogname));
    }
 
    /* Because we have the most recent post at the top (standard blog view) */
    int mirrorElement(int in)
    {
       int out;
-      out = mBlogData.getMaxBlogElements() - in;
+      out = mBlogMgr.getMaxBlogElements() - in;
       out -= 1;
       return out;
    }
@@ -293,7 +291,7 @@ public class TravelLocBlogMain extends ActionBarActivity
             return true; /* true means: "we handled the event". */
 
          case CONTEXTMENU_DELETEITEM:
-            if (menuInfo.position < mBlogData.getMaxBlogElements())
+            if (menuInfo.position < mBlogMgr.getMaxBlogElements())
             {
                final int deleteItem = mirrorElement(menuInfo.position);
                final Context context = this;
@@ -307,7 +305,7 @@ public class TravelLocBlogMain extends ActionBarActivity
                      {
                      case DialogInterface.BUTTON_POSITIVE:
                         boolean deleted = EditBlogElement.deletePost(context,
-                              deleteItem, mBlogData);
+                              deleteItem, mBlogMgr);
                         // Error messages if any are printed by EditBlogElement.deletePost
                         if (deleted)
                         {
@@ -420,7 +418,6 @@ public class TravelLocBlogMain extends ActionBarActivity
             return true;
          case R.id.delete_trip:
             deleteTripUI();
-            setOpenedFile(mBlogname);// TODO TESTING DELETE ME
             return true;
          case R.id.rename_trip:
             renameTripUI();
@@ -449,10 +446,10 @@ public class TravelLocBlogMain extends ActionBarActivity
    {
       AlertDialog.Builder builder = new AlertDialog.Builder(
             TravelLocBlogMain.this);
-      String str = "Trip: " + mBlogname;
-      str = str + "\nPosts: " + mBlogData.getMaxBlogElements();
+      String str = "Trip: " + mBlogMgr.openedName();
+      str = str + "\nPosts: " + mBlogMgr.getMaxBlogElements();
       String dist = "";
-      float fdistkm = mBlogData.getTotalDistance();
+      float fdistkm = mBlogMgr.getTotalDistance();
       fdistkm /= 1000.0F;
       dist = String.format(Locale.US, "%.2f km", fdistkm);
       str = str + "\nTotal Distance: " + dist;
@@ -477,7 +474,8 @@ public class TravelLocBlogMain extends ActionBarActivity
    {
       try
       {
-         File file = mBlogData.blogToFile(mBlogname);
+         String blogname = mBlogMgr.openedName();
+         File file = mBlogMgr.blogToFile(blogname);
          Intent sendIntent = new Intent(Intent.ACTION_SEND);
          
          // text/plain would be best, but seems like some mail apps (HTC
@@ -489,7 +487,7 @@ public class TravelLocBlogMain extends ActionBarActivity
          sendIntent.putExtra(Intent.EXTRA_SUBJECT,
                getString(R.string.share_subject_line));
          sendIntent.putExtra(Intent.EXTRA_TEXT,
-               String.format(getString(R.string.share_body_text), mBlogname));
+               String.format(getString(R.string.share_body_text), blogname));
          startActivity(Intent.createChooser(sendIntent,
                getString(R.string.share_prompt)));
       }
@@ -533,13 +531,14 @@ public class TravelLocBlogMain extends ActionBarActivity
 
    void openTripUI()
    {
-      mFileList = mBlogData.getBlogsList();
-      TravelLocBlogMain.selectTripDialog(this, mFileList,
+      final CharSequence[] fileList = mBlogMgr.getBlogsList();
+
+      TravelLocBlogMain.selectTripDialog(this, fileList,
             new DialogInterface.OnClickListener() {
          public void onClick(DialogInterface dialog, int item)
          {
             dialog.dismiss();
-            openTrip(mFileList[item].toString());
+            openTrip(fileList[item].toString());
          }
       });
    }
@@ -547,7 +546,9 @@ public class TravelLocBlogMain extends ActionBarActivity
    void deleteTripUI()
    {
       final Context context = this;
-      mFileList = mBlogData.getBlogsList();
+      final CharSequence[] fileList = mBlogMgr.getBlogsList();
+      final String currentName = mBlogMgr.openedName();
+
       // Display the list of files, and when item is selected for delete,
       // display the areYouSure dialog.
       // Essentially: selectTripDialog( listListener, areYouSure(msg, yesNoListener) )
@@ -557,8 +558,8 @@ public class TravelLocBlogMain extends ActionBarActivity
          public void onClick(DialogInterface dialog, final int item)
          {
             dialog.dismiss();
-            final String fileName = mFileList[item].toString();
-            String msg = String.format(getString(R.string.are_you_sure_file), fileName);
+            final String fileName = fileList[item].toString();
+            String msg = String.format(getString(R.string.are_you_sure_delete), fileName);
 
             // areYouSure dialog listener
             DialogInterface.OnClickListener yesNoListener
@@ -570,7 +571,7 @@ public class TravelLocBlogMain extends ActionBarActivity
                   switch (id)
                   {
                      case DialogInterface.BUTTON_POSITIVE:
-                        deleted = mBlogData.deleteBlog(fileName);
+                        deleted = mBlogMgr.deleteBlog(fileName);
                         break;
                      case DialogInterface.BUTTON_NEGATIVE:
                      default:
@@ -580,23 +581,24 @@ public class TravelLocBlogMain extends ActionBarActivity
                   {
                      // After file deleted, refresh list and check if current file
                      // was removed.
-                     mFileList = mBlogData.getBlogsList();
+                     CharSequence[] fileList = mBlogMgr.getBlogsList();
                      Toast.makeText(context, R.string.deleted_file,
                            Toast.LENGTH_LONG).show();
-                     if (mBlogname.equals(fileName))
+                     if (currentName.equals(fileName))
                      {
                         // Deleting currently open file so open some other file
                         // Pick the 0th file to display (any will do),
                         // otherwise use default
-                        if (mFileList != null && mFileList.length > 0) {
-                           mBlogname = mFileList[0].toString();
+                        String newname = null;
+                        if (fileList != null && fileList.length > 0) {
+                           newname = fileList[0].toString();
                         } else {
-                           mBlogname = Utils.createDefaultTrip(context, mBlogData);
+                           newname = Utils.createDefaultTrip(context, mBlogMgr);
                         }
-                        if (mBlogname != null) {
-                           openTrip(mBlogname);
+                        if (newname != null) {
+                           openTrip(newname);
                            // Refresh screen and save blog name to preferences
-                           setOpenedFile(mBlogname);                           
+                           setOpenedFile(newname);                           
                         }
                      }
                   }
@@ -614,15 +616,14 @@ public class TravelLocBlogMain extends ActionBarActivity
       
       // Display the list of files, and when item is selected for delete,
       // display the areYouSure dialog.
-      TravelLocBlogMain.selectTripDialog(this, mFileList, listListener);
+      TravelLocBlogMain.selectTripDialog(this, fileList, listListener);
    }
 
    // We have opened this file, so write it to preferences and display its contents
    private void setOpenedFile(String name)
    {
       if (name == null) return;
-      mBlogname = name;
-      setPreferencesLastOpenedTrip(mBlogname);
+      setPreferencesLastOpenedTrip(name);
       refreshList();
    }
 
@@ -650,7 +651,7 @@ public class TravelLocBlogMain extends ActionBarActivity
       TravelLocBlogMain.newTrip(newFileDialog, R.string.menu_new,
             new View.OnClickListener() {
          public void onClick(View v) {
-            String str = TravelLocBlogMain.newTripFilename(newFileDialog, mBlogData);
+            String str = TravelLocBlogMain.newTripFilename(newFileDialog, mBlogMgr);
             if (str != null)
             {
                setOpenedFile(str);
@@ -739,10 +740,11 @@ public class TravelLocBlogMain extends ActionBarActivity
       TravelLocBlogMain.newTrip(newFileDialog, R.string.menu_rename_trip,
             new View.OnClickListener() {
          public void onClick(View v) {
-            String str = TravelLocBlogMain.newTripFilename(newFileDialog, mBlogData);
+            String str = TravelLocBlogMain.newTripFilename(newFileDialog, mBlogMgr);
             if (str != null)
             {
-               boolean renamed = mBlogData.renameBlog(mBlogname, str);
+               String currentName = mBlogMgr.openedName();
+               boolean renamed = mBlogMgr.renameBlog(currentName, str);
                if (renamed) {
                   setOpenedFile(str);
                } else {
@@ -757,7 +759,8 @@ public class TravelLocBlogMain extends ActionBarActivity
    // Open trip and return true if successful. Also saves file name to preferences.
    boolean openTrip(String blogname)
    {
-      boolean opened = mBlogData.openBlog(blogname);
+      Uri uri = Utils.blognameToUri(blogname);
+      boolean opened = mBlogMgr.openBlog(this, uri);
       if (opened) {
          setOpenedFile(blogname);
       } else {
@@ -771,11 +774,11 @@ public class TravelLocBlogMain extends ActionBarActivity
    /* Open the map view activity to display the trip */
    void mapTrip()
    {
-      if (mBlogData.getMaxBlogElements() > 0)
+      if (mBlogMgr.getMaxBlogElements() > 0)
       {
          // Log.d(TAG, "Map Trip");
-         Intent i = new Intent(this, TripMapView.class);
-         Uri uri = Utils.blognameToUri(mBlogname);
+         Intent i = new Intent(this, MapTrip.class);
+         Uri uri = mBlogMgr.openedUri();
          i.setData(uri);
          startActivity(i);
       }
