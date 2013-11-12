@@ -134,7 +134,11 @@ public class ImportTrip extends ActionBarActivity {
          Intent i = new Intent(this, TravelLocBlogMain.class);
          Uri uri = Utils.blognameToUri(blogname);
          i.setData(uri);
-
+         
+         // Do not start Travel Blog in this task, given that Travel Blog
+         // always starts with last opened trip (and saves it to Preferences),
+         // having multiple tasks for Travel Blog would be very confusing.
+         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
          i.setAction(Intent.ACTION_MAIN);
          startActivity(i);
 

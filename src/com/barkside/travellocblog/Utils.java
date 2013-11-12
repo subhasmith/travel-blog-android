@@ -64,35 +64,59 @@ public enum Utils {
    {
       String blogname = null;
       
-      if (uri != null)
-      {
+      if (uri != null) {
          blogname = Utils.uriToBlogname(uri);
          Log.d(TAG, "Launched with given file " +  blogname);
       }
 
-      SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
       /* Attempt to open last used blog file. Try new default prefs, and deprecated prefs too */
-      if (blogname == null)
-      {
-         blogname = settings.getString(SettingsActivity.LAST_OPENED_TRIP_KEY, null);
-         if (blogname != null && blogname.isEmpty()) blogname = null;
+      if (blogname == null) {
+         blogname = Utils.getPreferencesLastOpenedTrip(context);
          Log.d(TAG, "Trying last opened file: " +  blogname);
+         if (blogname == null) {
+            // versionCode 5 (version 1.7) or older
+            SharedPreferences settings = context.getSharedPreferences(TravelLocBlogMain.PREFS_NAME, 0);
+            blogname = settings.getString("defaultTrip", null);
+            if (blogname != null && blogname.isEmpty()) blogname = null;
+         }
       }
-      if (blogname == null)
-      {
-         // versionCode 5 (version 1.7) or older
-         settings = context.getSharedPreferences(TravelLocBlogMain.PREFS_NAME, 0);
-         blogname = settings.getString("defaultTrip", null);
-         if (blogname != null && blogname.isEmpty()) blogname = null;
-      }
-      if (blogname == null)
-      {
+      
+      if (blogname == null) {
          blogname = context.getString(R.string.default_trip);
          if (blogname != null && blogname.isEmpty()) blogname = null;
       }
       Log.d(TAG, "getBlognameFromIntent returns: " + blogname);
       return blogname;
    }
+   
+   // Return the blog name as saved in the preferences file.
+   // null returned if none found.
+   public static String getPreferencesLastOpenedTrip(Context context)
+   {
+      SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
+      String blogname = settings.getString(SettingsActivity.LAST_OPENED_TRIP_KEY, null);
+      if (blogname != null && blogname.isEmpty()) blogname = null;
+      Log.d(TAG, "Trying last opened file: " +  blogname);
+      return blogname;
+   }
+   
+   /**
+    * Save given filename as last_opened_trip in the preferences,
+    * if a different name was stored.
+    */
+   public static void setPreferencesLastOpenedTrip(Context context, String filename)
+   {
+      SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
+      String oldname = settings.getString(SettingsActivity.LAST_OPENED_TRIP_KEY, null);
+      if (oldname == null || !oldname.equals(filename))
+      {
+         SharedPreferences.Editor editor = settings.edit();
+         editor.putString(SettingsActivity.LAST_OPENED_TRIP_KEY, filename);
+         Log.d(TAG, "Prefs: Saving last opened trip " + filename);
+         editor.commit();         
+      }
+   }
+
 
    // Given an input Uri, determine the blog name to use. If not found, try default file.
    // If neither can be opened, report appropriate message using Toast.

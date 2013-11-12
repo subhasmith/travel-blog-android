@@ -104,9 +104,10 @@ public class TravelLocBlogMain extends ActionBarActivity
          Log.w(TAG, "Failed to open any file including default.");
          blogname = "";
       }
-      setOpenedFile(blogname);         
-
-      Log.d(TAG, "onCreate file opened " + blogname);
+      Log.d(TAG, "onCreate file to open " + blogname);
+      // Update preferences, this will be used to load this file in onResume         
+      Utils.setPreferencesLastOpenedTrip(this, blogname);
+      
       SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
       
       // All new (Oct 2013+) settings always use standard default settings location
@@ -168,6 +169,14 @@ public class TravelLocBlogMain extends ActionBarActivity
    @Override
    protected void onResume() {
       super.onResume();
+      
+      // In case we came here from another activity, current file
+      // may have changed. Reload it from preferences file. If current file
+      // has not changed, openTrip blogMgr will just use current data and won't
+      // actually load the file from disk.
+      String blogname = Utils.getPreferencesLastOpenedTrip(this);
+      openTrip(blogname);
+      refreshList();
       
       // If we are starting an updated version of the app, show the what's new blurb
       if (mShowWhatsnew)
@@ -538,7 +547,10 @@ public class TravelLocBlogMain extends ActionBarActivity
          public void onClick(DialogInterface dialog, int item)
          {
             dialog.dismiss();
-            openTrip(fileList[item].toString());
+            String newname = fileList[item].toString();
+            openTrip(newname);
+            // Refresh screen and save blog name to preferences
+            setOpenedFile(newname);
          }
       });
    }
@@ -623,25 +635,8 @@ public class TravelLocBlogMain extends ActionBarActivity
    private void setOpenedFile(String name)
    {
       if (name == null) return;
-      setPreferencesLastOpenedTrip(name);
+      Utils.setPreferencesLastOpenedTrip(this, name);
       refreshList();
-   }
-
-   /**
-    * Save given filename as last_opened_trip in the preferences,
-    * if a different name was stored.
-    */
-   void setPreferencesLastOpenedTrip(String filename)
-   {
-      SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
-      String oldname = settings.getString(SettingsActivity.LAST_OPENED_TRIP_KEY, null);
-      if (oldname == null || !oldname.equals(filename))
-      {
-         SharedPreferences.Editor editor = settings.edit();
-         editor.putString(SettingsActivity.LAST_OPENED_TRIP_KEY, filename);
-         Log.d(TAG, "Prefs: Saving last opened trip " + filename);
-         editor.commit();         
-      }
    }
 
    // Display new trip UI
@@ -756,14 +751,12 @@ public class TravelLocBlogMain extends ActionBarActivity
       });
    }
 
-   // Open trip and return true if successful. Also saves file name to preferences.
+   // Open trip and return true if successful. Does not save file name to preferences.
    boolean openTrip(String blogname)
    {
       Uri uri = Utils.blognameToUri(blogname);
       boolean opened = mBlogMgr.openBlog(this, uri);
-      if (opened) {
-         setOpenedFile(blogname);
-      } else {
+      if (!opened) {
          String message = String.format(getString(R.string.open_failed_one_file),
                blogname);
          Toast.makeText(this, message, Toast.LENGTH_LONG).show();
