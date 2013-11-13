@@ -13,6 +13,9 @@
          Of course, users can just manually resize the widget, but we don't want
          to depend on that. So make all the parts of the widget visible in a single
          row landscape widget too.
+         ** Not working - on Android 2.3, landscape shows no trip name unless
+            a 2-cell height is used. So instead of text below button, changed layout
+            to text next to button.
          
          textAppearanceSmall is 14sp. Can use textSize="12sp" but that looks too small.
          xml/widget_info.xml sets the size of this widget, no need to size layout here.
@@ -36,14 +39,18 @@
         android:paddingTop="0dp"
         android:scaleType="fitXY" />
     
-   <ImageView
+    <!--  The New Post button icon -->
+    <ImageView
         android:id="@+id/widget_new_post"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/widget_click_text"
         android:layout_below="@id/widget_divider1"
+        android:layout_alignParentLeft="true"
         android:src="@drawable/ic_widget_place_new"
         android:contentDescription="@string/menu_new_post"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
         android:paddingTop="0dp"
         android:paddingBottom="0dp"/>
     
@@ -63,9 +70,11 @@
     
     <TextView
         android:id="@+id/widget_tripname"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/widget_divider2"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_below="@id/widget_divider1"
+        android:layout_toRightOf="@id/widget_new_post"
+        android:layout_centerVertical="true"
         android:ellipsize="end"
         android:paddingTop="0dp"
         android:gravity="center"
