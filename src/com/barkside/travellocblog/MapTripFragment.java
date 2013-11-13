@@ -54,8 +54,7 @@ public class MapTripFragment extends SupportMapFragment {
    private static final String TAG       = "MapTripFragment";
 
    private GoogleMap           mMap;
-   private BlogDataManager     mBlogMgr = BlogDataManager.getInstance();
-   private Uri                 mUri;
+   private Uri                 mTripUri;
 
    private BitmapDescriptor    mIcon     = null;
    private BitmapDescriptor    mIconFirst= null;
@@ -79,38 +78,79 @@ public class MapTripFragment extends SupportMapFragment {
       Log.d(TAG, "onCreate ");
       super.onCreate(savedInstanceState);
       
-      Context context = getActivity();
+      mTripUri = null;
       final Bundle args = getArguments();
       if (args != null) {
-          mUri = args.getParcelable("BLOG_URI");
+          mTripUri = args.getParcelable("BLOG_URI");
       }
 
-      Uri uri = mUri;
-      Log.d(TAG, "got uri " + uri);
-      String filename = Utils.uriToBlogname(uri);
-      Log.d(TAG, "uri to blogname " + filename);
-      boolean opened = false;
-      opened = mBlogMgr.openBlog(context, uri);
-
-      // This should never happen - since the caller activity also opens the file
-      // and only calls this fragment if it was not opened... but just to be safe...
-      if (!opened) {
-         // Failed to open requested file.
-         Toast.makeText(context, R.string.file_open_failed,
-               Toast.LENGTH_SHORT).show();
-      }
-
+      Log.d(TAG, "got uri " + mTripUri);
       /* use one pointer for the first location, and another for the rest */
       mIconFirst = BitmapDescriptorFactory.fromResource(R.drawable.marker_green_go);
       mIcon = BitmapDescriptorFactory.fromResource(R.drawable.marker_blue_circle);
-
-      setUpMapIfNeeded();
    }
 
    @Override
    public void onResume() {
       super.onResume();
-      setUpMapIfNeeded();
+      
+      // Display all the markers on the map. The GoogleMap object remembers all the
+      // markers on a pause and resume, so we only need to this once.
+      if (mMap == null) {
+         openTrip(mTripUri);         
+      }
+      // We may come here from another Travel Blog activity screen through the
+      // Android back stack, so the current trip pointed to mBlogMgr may have
+      // changed. But we don't need care, since we have already displayed the
+      // map markers, and GoogleMap takes care of onResume redrawing.
+   }
+   
+   // Open given blog, and display it on the map.
+   // User may select specific trip files from the menu, we will open them and display
+   // the locations on the map. This is a view-only, secondary activity operation therefore
+   // we don't save any newly opened trip file to the Preferences. This means that the
+   // back button will behave sensibly - when user returns to any previous Travel Blog
+   // activity screen, that screen will continue to show the same trip file it was displaying
+   // and not be affected by the trip files opened in this Map Trip activity.
+   public boolean openTrip(Uri uri) {
+      
+      if (uri == null) return false;
+      
+      BlogDataManager blogMgr = BlogDataManager.getInstance();
+
+      Context context = getActivity();
+      boolean opened = false;
+      opened = blogMgr.openBlog(context, uri);
+
+      if (opened) {
+         if (mMap == null) {
+            // Try to obtain the map from the SupportMapFragment.
+            mMap = super.getMap();
+            // Check if we were successful in obtaining the map.
+            if (mMap != null) {
+               UiSettings uiSettings = mMap.getUiSettings();
+               uiSettings.setZoomControlsEnabled(true);
+            }
+         } else {
+            // We may have displayed a trip previously, and now need to display
+            // another trip. Place the markers from the new trip on the map. 
+            // Since the trip may be empty, reset the map to start with.
+            LatLng latlng = LocationUpdates.stringToLatLng(
+                  getString(R.string.final_fallback_lnglat));
+            mMap.clear();
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latlng, 6.0f));
+         }
+         Log.d(TAG, "mMap is " + mMap);
+         if (mMap != null) {
+            Log.d(TAG, "Map trip " + uri);
+            addMarkersToMap(blogMgr);
+         }
+      } else {
+         // Failed to open requested file.
+         Toast.makeText(context, R.string.file_open_failed,
+               Toast.LENGTH_SHORT).show();
+      }
+      return opened;
    }
 
    /*
@@ -123,42 +163,10 @@ public class MapTripFragment extends SupportMapFragment {
       super.onPause();
    }
 
-   /*
-    * Called when the Activity is restarted, even before it becomes visible.
-    */
-   @Override
-   public void onStart() {
-      super.onStart();
-   }
-
-   private void setUpMapIfNeeded() {
-      // Do a null check to confirm that we have not already instantiated the
-      // map.
-      if (mMap == null) {
-         // Try to obtain the map from the SupportMapFragment.
-         mMap = super.getMap();
-         // Check if we were successful in obtaining the map.
-         if (mMap != null) {
-            setUpMap();
-         } else {
-            Log.d(TAG, "could not setupMap - mMap is null");
-         }
-      }
-   }
-
    /**
     * Add all the note locations as markers and draw lines between them.
     */
-   private void setUpMap() {
-
-      UiSettings uiSettings = mMap.getUiSettings();
-      uiSettings.setZoomControlsEnabled(true);
-
-      // Add lots of markers to the map.
-      addMarkersToMap();
-   }
-
-   private void addMarkersToMap() {
+   private void addMarkersToMap(BlogDataManager blogMgr) {
       /*
       Maybe TODO: run this in a thread, yielding ever so often, otherwise, UI
       thread may be blocked for too long if adding 1000+ markers.
@@ -167,16 +175,18 @@ public class MapTripFragment extends SupportMapFragment {
       Use new Thread() and runOnUiThread or use AsyncThread for loading markers, if needed.
     */
 
-      int count = mBlogMgr.getMaxBlogElements();
+      int count = blogMgr.getMaxBlogElements();
+      Log.d(TAG, "Add markers to map, count: " + count);
       if (count <= 0) {
          return;
       }
+      
       LatLngBounds.Builder bounds = new LatLngBounds.Builder();
       PolylineOptions polylineOptions = new PolylineOptions();
       BitmapDescriptor icon = mIconFirst; 
 
-      for (int i = 0; i < mBlogMgr.getMaxBlogElements(); ++i) {
-         BlogElement blog = mBlogMgr.getBlogElement(i);
+      for (int i = 0; i < blogMgr.getMaxBlogElements(); ++i) {
+         BlogElement blog = blogMgr.getBlogElement(i);
          if ((blog.title == null) || (blog.location == null)
                || (blog.location.length() == 0) || (blog.title.length() == 0)) {
             continue;

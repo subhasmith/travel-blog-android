@@ -51,7 +51,11 @@ public class EditBlogElement extends LocationUpdates
    // this is now stored in shared preferences for each user.
    private static final int LOC_UPDATE_DURATION = 15;
    
-   private Boolean mIsNewBlog = false;
+   // Whether editing an existing entry, or entering a new one.
+   private Boolean mIsNewEntry = false;
+
+   // Index of blog entry being edited/created
+   private int mEditItem;
    
    // We have multiple sources of current location data.
    // The priority is: mEditedLatLng then mBestLocation then mOldLatLng.
@@ -79,13 +83,14 @@ public class EditBlogElement extends LocationUpdates
    // Settings value
    private int mUpdatesDuration = 0; // 0 means no auto-off
    
+   // Shared blog data manager among activities
    private BlogDataManager mBlogMgr = BlogDataManager.getInstance();
 
+   // Uri of trip file being edited.
+   private Uri mBlogUri = null;
+   
    // Internal request code for sub-activity
    private final int EDIT_LOCATION_REQUEST = 100;
-
-   // Index of blog element/post being edited/created
-   private int mEditItem;
 
    /**
     * Return the layout to inflate, to the abstract base class.
@@ -152,18 +157,19 @@ public class EditBlogElement extends LocationUpdates
          return;
       }
 
+      // Store the Uri of just the blog name, without the index.
+      mBlogUri = Utils.blognameToUri(blogname);
       // update ActionBar title with blog name
       // to support SDK 11 and older, need to use getSupportActionBar
       ActionBar actionBar = getSupportActionBar();
       actionBar.setTitle(Utils.blogToDisplayname(blogname));
-      int subtitleId = 0; // screen subtitle R.string resource id
 
       // Entry to edit, or -1 or no id to create new post
       mEditItem = uri != null ? Utils.uriToEntryIndex(uri) : -1;
       
       if (mEditItem < 0)
       {
-         mIsNewBlog = true;
+         mIsNewEntry = true;
 
          // Create mOldTime note timestamp to store in KML file
          Date dateNow = new Date();
@@ -202,12 +208,11 @@ public class EditBlogElement extends LocationUpdates
 
          mEditItem = elementCount; // we display this in screen subtitle
          mOldLngLat = fallbackLngLat;
-         subtitleId = R.string.new_post_name_format;
       }
       else
       {
          // Requested to edit: set that state, and the data being edited.
-         mIsNewBlog = false;
+         mIsNewEntry = false;
          BlogElement blog = mBlogMgr.getBlogElement(mEditItem);
 
          mTitle = blog.title;
@@ -221,13 +226,7 @@ public class EditBlogElement extends LocationUpdates
          tv = (EditText) findViewById(R.id.edit_description);
          tv.setText(descr);
          tv.setSelection(tv.getText().length());
-         
-         subtitleId = R.string.edit_post_name_format;
       }
-
-      // Display a subtitle with the 1-based index of the element
-      String subtitle = String.format(getString(subtitleId), mEditItem + 1);
-      actionBar.setSubtitle(subtitle);
 
       // Note: enable up navigation? - that will cancel edit. Is it confusing?
       // For now, enabling it. That follows Android guidelines, and while it is
@@ -258,6 +257,56 @@ public class EditBlogElement extends LocationUpdates
       displayLocation();
    }
    
+   @Override
+   public void onResume() {
+      super.onResume();
+      
+      ActionBar actionBar = getSupportActionBar();
+      // We may come here from another Travel Blog activity screen through the
+      // Android back stack, so the current trip pointed to mBlogMgr may have
+      // changed. Therefore, we should load the blog again and re-compute the
+      // index being added, if we can.
+      boolean opened = mBlogMgr.openBlog(this, mBlogUri);
+      if (!opened) {
+         String blogname = Utils.uriToBlogname(mBlogUri);
+         String message = String.format(getString(R.string.open_failed_one_file),
+               blogname);
+         Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+         actionBar.setSubtitle(R.string.file_open_failed);
+         
+         // Finish activity, failure status
+         setResult(TravelLocBlogMain.RESULT_SAVE_FAILED);
+         sendResultAndFinish();
+         return;
+      }
+
+      int subtitleId = 0; // screen subtitle R.string resource id
+
+      if (mIsNewEntry) {
+         // Recompute the edit location, in case it has changed.
+         mEditItem = mBlogMgr.getMaxBlogElements();
+         
+         subtitleId = R.string.new_post_name_format;
+      } else {
+         // This works fine if we are coming here and have not started any additional
+         // Travel Blog activity screen launches on the Android stack.
+         // TODO: Warning:
+         // If we come back here and user has used the home screen to navigate to
+         // launcher and start another Travel Blog activity, and edited the same
+         // trip file, then the index has changed, but we don't know how...
+         // No good options exist here - may overwrite the wrong entry? No good
+         // to detect this condition also - user may add/delete entries and then
+         // come back here.
+         // Best thing to do is to move to a database for storage, and support
+         // immediate save and undo. That way, the entry is immediately saved
+         // in onPause and so on.
+         subtitleId = R.string.edit_post_name_format;
+      }
+      // Display a subtitle with the 1-based index of the element
+      String subtitle = String.format(getString(subtitleId), mEditItem + 1);
+      actionBar.setSubtitle(subtitle);
+   }
+
    /**
     * Return a LatLng object that represents the current location.
     * This function looks at all the places we have stashed location, and returns the
@@ -298,7 +347,7 @@ public class EditBlogElement extends LocationUpdates
       // known location. The onConnected message comes in pretty fast when there was
       // a previous location on the phone. If user turns off GPS, this is not true -
       // it may never get a onConnected event and this message will stay until timer expires.
-      if (mIsNewBlog && mBestLocation == null && updatesRequested())
+      if (mIsNewEntry && mBestLocation == null && updatesRequested())
       {
          tv.setText(R.string.finding_location); 
          return;
@@ -312,7 +361,7 @@ public class EditBlogElement extends LocationUpdates
       // Explanation text to display after the location, or accuracy display
       // Display accuracy, if we have it and no manual edits have occurred.
       String suffix = "";
-      if (mIsNewBlog && mEditedLatLng == null)
+      if (mIsNewEntry && mEditedLatLng == null)
       {
          if (mBestLocation == null)
          {
@@ -439,7 +488,7 @@ public class EditBlogElement extends LocationUpdates
          break;
       }
       
-      sendResult();
+      sendResultAndFinish();
    }
    
    @Override
@@ -455,7 +504,7 @@ public class EditBlogElement extends LocationUpdates
       // callback comes in pretty fast. Though if the user has turned off Network location
       // services, this can be null since using only GPS can take a long time for a fix.
       // We only need to get location if we are editing a new blog.
-      if (mIsNewBlog)
+      if (mIsNewEntry)
       {
          Location loc = getLastLocation();
          if (loc != null)
@@ -495,7 +544,7 @@ public class EditBlogElement extends LocationUpdates
     */
    private void warnNoLocationToast()
    {
-      if (mIsNewBlog && mBestLocation == null && mEditedLatLng == null)
+      if (mIsNewEntry && mBestLocation == null && mEditedLatLng == null)
       {
          if (mOldLatLng == null)
             Toast.makeText(this, R.string.no_location_fix_no_default,
@@ -555,7 +604,7 @@ public class EditBlogElement extends LocationUpdates
     */
    private void checkEnableLocationUpdates()
    {
-      if (mEditedLatLng == null && mIsNewBlog)
+      if (mEditedLatLng == null && mIsNewEntry)
       {
          super.enableLocationUpdates(mUpdatesDuration);
       }
@@ -651,7 +700,7 @@ public class EditBlogElement extends LocationUpdates
       }
    }
 
-   private void sendResult()
+   private void sendResultAndFinish()
    {
       // Since we going to exit, turn off the location updates.
       stopPeriodicUpdates();
@@ -681,7 +730,7 @@ public class EditBlogElement extends LocationUpdates
                Log.d(TAG, "Got delete post " + mEditItem);
                if (EditBlogElement.deletePost(context, mEditItem, mBlogMgr))
                {
-                  sendResult(); // finishes activity                  
+                  sendResultAndFinish(); // finishes activity                  
                }
                // If we could not delete the post, stay on this activity
                break;

@@ -95,6 +95,11 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
          int subtitleId = R.string.edit_location_name_format;
 
          // Display a subtitle with the 1-based index of the element
+         // Warning: TODO:
+         // This works fine if user follows normal path of activity screens,
+         // but if user hits the home button and stacks up multiple travel blog activities
+         // and edits the same trip in multiple activities, deletes locations, etc,
+         // then this index may be wrong.
          String subtitle = String.format(getString(subtitleId), blogIndex + 1);
          actionBar.setSubtitle(subtitle);
 

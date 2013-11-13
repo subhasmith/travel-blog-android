@@ -130,9 +130,9 @@
     <string name="file_imported">Imported trip successfully.</string>
     
     <string name="final_fallback_lnglat">0,51</string>
+    <string name="using_fallback_location">Location estimate failed. Using location 0,51 to initialize editor.</string>
     <string name="no_location_fix_no_default">No location fix found. No previous entry. Using location 0,51.</string>
     <string name="no_location_fix_use_previous">No location fix found. Using previous entry\'s location.</string>
     
-    <string name="using_fallback_location">Location estimate failed. Using location 0,51 to initialize editor.</string>
     
 </resources>

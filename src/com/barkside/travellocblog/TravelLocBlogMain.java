@@ -55,7 +55,11 @@ public class TravelLocBlogMain extends ActionBarActivity
    // For logging and debugging purposes
    private static final String TAG = "TravelLocBlogMain";
 
+   // Shared blog data manager among activities
    private BlogDataManager mBlogMgr = BlogDataManager.getInstance();
+
+   // Uri of trip file being edited.
+   private Uri mBlogUri = Uri.EMPTY;   
 
    public static final int NEW_BLOG_ENTRY = 100;
    public static final int EDIT_BLOG_ENTRY = 111;
@@ -101,12 +105,16 @@ public class TravelLocBlogMain extends ActionBarActivity
       if (blogname == null)
       {
          // Could not open either named file, or default file.
+         // Don't exit activity - let user select new file from the menu.
          Log.w(TAG, "Failed to open any file including default.");
          blogname = "";
+         mBlogUri = Uri.EMPTY;
+      }
+      else
+      {
+         mBlogUri = Utils.blognameToUri(blogname);         
       }
       Log.d(TAG, "onCreate file to open " + blogname);
-      // Update preferences, this will be used to load this file in onResume         
-      Utils.setPreferencesLastOpenedTrip(this, blogname);
       
       SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
       
@@ -159,8 +167,7 @@ public class TravelLocBlogMain extends ActionBarActivity
    private void newBlogEntry()
    {
       Intent i = new Intent(this, EditBlogElement.class);
-      Uri uri = mBlogMgr.openedUri();
-      i.setData(uri);
+      i.setData(mBlogUri);
       i.setAction(Intent.ACTION_INSERT_OR_EDIT);
       Log.d(TAG, "New Log Entry");
       startActivityForResult(i, NEW_BLOG_ENTRY);
@@ -170,12 +177,20 @@ public class TravelLocBlogMain extends ActionBarActivity
    protected void onResume() {
       super.onResume();
       
-      // In case we came here from another activity, current file
-      // may have changed. Reload it from preferences file. If current file
+      // We may come here from another Travel Blog activity screen through the
+      // Android back stack, so the current trip pointed to mBlogMgr may have
+      // changed. Therefore, we should load the blog again. If current file
       // has not changed, openTrip blogMgr will just use current data and won't
       // actually load the file from disk.
-      String blogname = Utils.getPreferencesLastOpenedTrip(this);
-      openTrip(blogname);
+      
+      ActionBar actionBar = getSupportActionBar();
+      boolean opened = openTrip(Utils.uriToBlogname(mBlogUri));
+      if (!opened) {
+         actionBar.setTitle(R.string.file_open_failed);
+         
+         // Do not finish this main activity. Allow user to select new file
+         // from the menu.
+      }
       refreshList();
       
       // If we are starting an updated version of the app, show the what's new blurb
@@ -216,7 +231,6 @@ public class TravelLocBlogMain extends ActionBarActivity
       String blogname = mBlogMgr.openedName();
       Log.d(TAG, "refreshList " + blogname);
       BlogListAdapter adapter = new BlogListAdapter(this);
-      mBlogList.setAdapter(adapter);
       for (int i = 0; i < mBlogMgr.getMaxBlogElements(); i++)
       {
          BlogElement blog = mBlogMgr.getBlogElement(mirrorElement(i));
@@ -227,7 +241,11 @@ public class TravelLocBlogMain extends ActionBarActivity
       // update ActionBar title with blog name
       // to support SDK 11 and older, need to use getSupportActionBar
       ActionBar actionBar = getSupportActionBar();
-      actionBar.setTitle(Utils.blogToDisplayname(blogname));
+      if (blogname == null || blogname.isEmpty()) {
+         actionBar.setTitle(R.string.file_open_failed);         
+      } else {
+         actionBar.setTitle(Utils.blogToDisplayname(blogname));         
+      }
    }
 
    /* Because we have the most recent post at the top (standard blog view) */
@@ -756,7 +774,10 @@ public class TravelLocBlogMain extends ActionBarActivity
    {
       Uri uri = Utils.blognameToUri(blogname);
       boolean opened = mBlogMgr.openBlog(this, uri);
-      if (!opened) {
+      if (opened) {
+         // Nothing to do
+      } else {
+         mBlogUri = Uri.EMPTY;
          String message = String.format(getString(R.string.open_failed_one_file),
                blogname);
          Toast.makeText(this, message, Toast.LENGTH_LONG).show();
