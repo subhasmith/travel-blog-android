@@ -212,9 +212,9 @@ public class BlogData
    }
 
    /* updates element if index valid, otherwise adds new element */
-   public Boolean saveBlogElement(BlogElement blog, int index)
+   public Boolean saveBlogElement(BlogElement element, int index)
    {
-      if (!blog.valid())
+      if (!element.valid() || !this.valid())
       {
          return false;
       }
@@ -224,11 +224,11 @@ public class BlogData
 
       if (index >= 0 && index < mBlogPosts.size())
       {
-         mBlogPosts.set(index, blog);
+         mBlogPosts.set(index, element);
       }
       else
       {
-         mBlogPosts.add(blog);
+         mBlogPosts.add(element);
       }
       
       if (saveBlogToFile(mFilename) == false)
@@ -237,6 +237,11 @@ public class BlogData
          return false;
       }
       return true;
+   }
+
+   // Return true if this is a valid, successfully opened blog.
+   private boolean valid() {
+      return mFilename != null;
    }
 
    /* deletes blog element */
@@ -425,7 +430,7 @@ public class BlogData
          }
       }
 
-      Log.d(TAG, "Loaded KML from stream ");
+      Log.d(TAG, "Loaded KML ");
       return true;
    }
 
@@ -489,6 +494,14 @@ public class BlogData
    /* here we run through the mBlogs data structure and save to XML */
    public Boolean saveBlogToFile(String blogname)
    {
+      if (!this.valid())
+      {
+         // Blog is not valid - did not successfully open any blog, so don't
+         // overwrite any existing blogname file.
+         // Note that 0 length mBlogPosts is fine - that is a valid, 0-length blog.
+         return false;
+      }
+
       String path = fullBlogPath(blogname);
       File newxmlfile = new File(path);
       try

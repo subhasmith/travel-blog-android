@@ -24,6 +24,8 @@ November 2013
    
  * Rename Trip menu command added. This and Delete Trip is now under a Manage Trips submenu.
  
+ * Open Trip menu command now available from Map Trip activity also.
+ 
  * Alert dialog now displayed if there is an error saving edited blog post or deleting a post.
    This used to be just a brief Toast message, but since failing to update trip file is a
    serious error, display it in a dialog box and do not terminate the edit activity.

@@ -16,6 +16,8 @@
 
 package com.barkside.travellocblog;
 
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -36,6 +38,8 @@ import android.view.MenuItem;
 public class MapTrip extends ActionBarActivity {
    // For logging and debugging purposes
    private static final String TAG = "MapTrip";
+   
+   private BlogDataManager mBlogMgr = BlogDataManager.getInstance();
 
    @Override
    public void onCreate(Bundle savedInstanceState) {
@@ -82,34 +86,63 @@ public class MapTrip extends ActionBarActivity {
    @Override
    public boolean onOptionsItemSelected(MenuItem item)
    {
-      switch (item.getItemId())
-      {
-         case R.id.send_feedback:
-            Utils.sendFeedback(this, TAG);
-            return true;
-       case R.id.help:
-            Utils.showHelp(getSupportFragmentManager());
-            return true;
-            // Respond to the action bar's Up/Home button
-       case android.R.id.home:
-          Intent upIntent = NavUtils.getParentActivityIntent(this);
-          if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
-              // This activity is NOT part of this app's task, so create a new task
-              // when navigating up, with a synthesized back stack.
-              TaskStackBuilder.create(this)
-                      // Add all of this activity's parents to the back stack
-                      .addNextIntentWithParentStack(upIntent)
-                      // Navigate up to the closest parent
-                      .startActivities();
-          } else {
-              // This activity is part of this app's task, so simply
-              // navigate up to the logical parent activity.
-              NavUtils.navigateUpTo(this, upIntent);
-          }
-          return true;
-         default:
-            return super.onOptionsItemSelected(item);
+      switch (item.getItemId()) {
+      case R.id.open_trip:
+         openTripUI();
+         return true;
+      case R.id.send_feedback:
+         Utils.sendFeedback(this, TAG);
+         return true;
+      case R.id.help:
+         Utils.showHelp(getSupportFragmentManager());
+         return true;
+         // Respond to the action bar's Up/Home button
+      case android.R.id.home:
+         Intent upIntent = NavUtils.getParentActivityIntent(this);
+         if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
+            // This activity is NOT part of this app's task, so create a new task
+            // when navigating up, with a synthesized back stack.
+            TaskStackBuilder.create(this)
+            // Add all of this activity's parents to the back stack
+            .addNextIntentWithParentStack(upIntent)
+            // Navigate up to the closest parent
+            .startActivities();
+         } else {
+            // This activity is part of this app's task, so simply
+            // navigate up to the logical parent activity.
+            NavUtils.navigateUpTo(this, upIntent);
+         }
+         return true;
+      default:
+         return super.onOptionsItemSelected(item);
       }
+   }
+
+   void openTripUI()
+   {
+      final CharSequence[] fileList = mBlogMgr.getBlogsList();
+      final Context context = this;
+      
+      final MapTripFragment mapFrag = (MapTripFragment)
+            getSupportFragmentManager().findFragmentById(R.id.map_trip_fragment);
+
+      TravelLocBlogMain.selectTripDialog(this, fileList,
+            new DialogInterface.OnClickListener() {
+         public void onClick(DialogInterface dialog, int item)
+         {
+            dialog.dismiss();
+            String newname = fileList[item].toString();
+            Uri uri = Utils.blognameToUri(newname);
+            // Tell the Map Fragment to display this new blog
+            if (mapFrag.openTrip(uri)) {
+               // Save blog name to preferences
+               Utils.setPreferencesLastOpenedTrip(context, newname);
+               // Update Action Bar title.
+               ActionBar actionBar = getSupportActionBar();
+               actionBar.setTitle(Utils.blogToDisplayname(newname));
+            }
+         }
+      });
    }
 
 }

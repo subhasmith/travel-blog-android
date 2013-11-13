@@ -135,10 +135,15 @@ public class ImportTrip extends ActionBarActivity {
          Uri uri = Utils.blognameToUri(blogname);
          i.setData(uri);
          
-         // Do not start Travel Blog in this task, given that Travel Blog
-         // always starts with last opened trip (and saves it to Preferences),
-         // having multiple tasks for Travel Blog would be very confusing.
-         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+         // We could start a Travel Blog activity in this non-Travel Blog task.
+         // But seems simpler to start it in an existing Travel Blog task, if it
+         // exists, or create a new task.
+         // TODO: confirm the best thing to do here. For now, make Travel Blog
+         // start a new task. This avoids seeing Travel Blog screens shown under
+         // names of other tasks. Don't use FLAG_ACTIVITY_CLEAR_TOP since that may
+         // obliterate any existing, in-progress previous Travel Blog activity task.
+         // i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
          i.setAction(Intent.ACTION_MAIN);
          startActivity(i);
 
@@ -186,7 +191,7 @@ public class ImportTrip extends ActionBarActivity {
    public boolean onCreateOptionsMenu(Menu menu)
    {
       MenuInflater inflater = getMenuInflater();
-      inflater.inflate(R.menu.map_trip, menu);
+      inflater.inflate(R.menu.import_trip, menu);
       
       return true;
    }
