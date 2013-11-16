@@ -45,7 +45,7 @@ Copyright 2011 Barkside Apps</string>
     <!--  What's New Message -->
     <string name="whatsnew_message"><b>What\'s New</b>\n
 \n
-<b>Version 2.2.0</b>\n\n
+<b>Version 2.2</b>\n\n
 * App widgets now available, to directly start the New Post editing screen.
 These can be installed on the home screen. Multiple widgets can be installed,
 each one configured to use a specific trip file or to always start New Post using
@@ -56,7 +56,7 @@ the last opened trip.\n
 * User interface updates and bug fixes. Rename Trip command added under a new Manage Trips submenu.
 Editing screens now show the index of the post being edited.\n
 \n
-<b>Version 2.0.1</b>\n
+<b>Version 2.0</b>\n
 * Locations are now editable using a map.
 When editing a post, click on location text to bring up a map.\n
 \n

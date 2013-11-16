@@ -3,6 +3,7 @@ package com.barkside.travellocblog;
 import java.util.Locale;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
@@ -16,11 +17,18 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.app.NavUtils;
+import android.support.v4.app.TaskStackBuilder;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.barkside.travellocblog.LocationUpdates.ErrorDialogFragment;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 
 /**
  * Shared utility functions used by multiple activities.
@@ -50,8 +58,8 @@ public enum Utils {
 
       String blogname = Utils.displayToBlogname(defaultTrip);
       Uri uri = Utils.blognameToUri(blogname);
-      boolean opened = true;
-      Log.d(TAG, "Exists file ?" + blogMgr.existingBlog(blogname));
+      boolean opened = false;
+      Log.d(TAG, "createDefaultTrip: file exists? " + blogMgr.existingBlog(blogname));
 
       if (blogMgr.existingBlog(blogname)) {
          opened = blogMgr.openBlog(context, uri);
@@ -72,7 +80,7 @@ public enum Utils {
       }
 
       /* Attempt to open last used blog file. Try new default prefs, and deprecated prefs too */
-      if (blogname == null) {
+      if (blogname == null || blogname.equals("")) {
          blogname = Utils.getPreferencesLastOpenedTrip(context);
          Log.d(TAG, "Trying last opened file: " +  blogname);
          if (blogname == null) {
@@ -83,7 +91,7 @@ public enum Utils {
          }
       }
       
-      if (blogname == null) {
+      if (blogname == null || blogname.equals("")) {
          blogname = context.getString(R.string.default_trip);
          if (blogname != null && blogname.equals("")) blogname = null;
       }
@@ -98,7 +106,7 @@ public enum Utils {
       SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
       String blogname = settings.getString(SettingsActivity.LAST_OPENED_TRIP_KEY, null);
       if (blogname != null && blogname.equals("")) blogname = null;
-      Log.d(TAG, "Trying last opened file: " +  blogname);
+      Log.d(TAG, "Prefs: last opened file: " +  blogname);
       return blogname;
    }
    
@@ -280,6 +288,61 @@ public enum Utils {
       helpDialog.show(fm, "Help Dialog"); // getString(R.string.help_dialog_title));
    }
 
+   /**
+    * Verify that Google Play services is available before making a request.
+    *
+    * @return true if Google Play services is available, otherwise false
+    */
+   public static boolean playServicesAvailable(FragmentActivity activity) {
+
+       // Check that Google Play services is available
+       int resultCode =
+               GooglePlayServicesUtil.isGooglePlayServicesAvailable(activity);
+
+       // If Google Play services is available
+       if (ConnectionResult.SUCCESS == resultCode) {
+           // Log.d(TAG, getString(R.string.play_services_available));
+           // Continue
+           return true;
+       // Google Play services was not available for some reason
+       } else {
+           // Display an error dialog
+           Dialog dialog = GooglePlayServicesUtil.getErrorDialog(resultCode, activity, 0);
+           if (dialog != null) {
+               ErrorDialogFragment errorFragment = new ErrorDialogFragment();
+               errorFragment.setDialog(dialog);
+               errorFragment.show(activity.getSupportFragmentManager(), TAG);
+           }
+           return false;
+       }
+   }
+
+   // Navigate to parent activity, and setData to the given uri.
+   // Use this in onOptionsItemSelected(MenuItem item) to handle the case android.R.id.home
+   // to respond to the action bar's Up/Home button.
+   public static void handleUpNavigation(FragmentActivity activity, Uri uri)
+   {
+      Intent upIntent = NavUtils.getParentActivityIntent(activity);
+      // Start the intent with the trip uri we have open. This may not be necessary
+      // for Android > 3.0 since the widget creates the back stack with this data,
+      // but Android 2.3.7 certainly needs it otherwise it may use some other trip
+      // to display in the upIntent Travel Blog main activity.
+      upIntent.setData(uri);
+      if (NavUtils.shouldUpRecreateTask(activity, upIntent)) {
+         // This activity is NOT part of this app's task, so create a new task
+         // when navigating up, with a synthesized back stack.
+         TaskStackBuilder.create(activity)
+         // Add all of this activity's parents to the back stack
+         .addNextIntentWithParentStack(upIntent)
+         // Navigate up to the closest parent
+         .startActivities();
+      } else {
+         // This activity is part of this app's task, so simply
+         // navigate up to the logical parent activity.
+         NavUtils.navigateUpTo(activity, upIntent);
+      }
+   }
+   
    // Get the app package info with version name, version code, etc.
    public static PackageInfo getAppPackageInfo(Context context)
    {
@@ -322,37 +385,46 @@ public enum Utils {
    public static String uriToBlogname(Uri uri) {
       if (uri == null) return "";
       
-      String scheme = uri.getScheme();
-      String name = uri.getPath(); // this includes the id
-      boolean hasId = false;
-      try {
-         ContentUris.parseId(uri);
-         hasId = true;
-      } catch (NumberFormatException n) {
-         hasId = false;
-      }
-      if (hasId) {
-         int idIndex = name.lastIndexOf('/');
-         if (idIndex >= 0)
-            name = name.substring(0, idIndex);
-      }
+      String path = uri.getPath(); // this includes the id
 
-      // Check if Uri has been generated internally.
+      // Check if Uri has been generated internally.      
+      if (Utils.uriIsInternal(uri)) {
+         boolean hasId = false;
+         try {
+            ContentUris.parseId(uri);
+            hasId = true;
+         } catch (NumberFormatException n) {
+            hasId = false;
+         }
+         
+         String filename = path;
+         if (hasId) {
+            int idIndex = filename.lastIndexOf('/');
+            if (idIndex >= 0)
+               filename = filename.substring(0, idIndex);
+         }
+
+         // remove leading / if any
+         if (filename.startsWith("/")) filename = filename.substring(1);
+         if (filename.indexOf('/') >= 0) {
+            throw new IllegalArgumentException("Uri a path? Not a filename: " + filename);
+         }
+         return filename;
+      }
+      // Not an internal Uri, caller should use ContentResolver to convert
+      // to InputFileStream etc. And we use the full path as the name.
+      // But: Maybe uri.toString() might be better here?
+      return path == null ? "" : path;
+   }
+
+   // Return true if Uri has been generated internally.
+   public static boolean uriIsInternal(Uri uri) {
+      String scheme = uri.getScheme();
       String authority = uri.getAuthority();
       boolean isInternal = ContentResolver.SCHEME_CONTENT.equalsIgnoreCase(scheme)
             && AUTHORITY.equalsIgnoreCase(authority);
       
-      if (isInternal) {
-         // remove leading / if any
-         if (name.startsWith("/")) name = name.substring(1);
-         if (name.indexOf('/') >= 0) {
-            throw new IllegalArgumentException("Uri a path? Not a filename: " + name);
-         }
-         return name;
-      }
-      // Not an internal Uri, caller should use ContentResolver to convert
-      // to InputFileStream etc.
-      return "";
+      return isInternal;
    }
 
    // Uri can be: content://authority/path or content://authority/path/id

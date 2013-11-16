@@ -18,7 +18,6 @@ package com.barkside.travellocblog;
 
 import android.annotation.SuppressLint;
 import android.graphics.Color;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -51,7 +50,7 @@ public class MapTripFragment extends SupportMapFragment {
    // For logging and debugging purposes
    private static final String TAG       = "MapTripFragment";
 
-   private GoogleMap           mMap;
+   private GoogleMap           mMap      = null;
 
    private BitmapDescriptor    mIcon     = null;
    private BitmapDescriptor    mIconFirst= null;
@@ -80,15 +79,9 @@ public class MapTripFragment extends SupportMapFragment {
    public void onCreate(Bundle savedInstanceState) {
       super.onCreate(savedInstanceState);
       
-      // Note: this onCreate may be called before the parent activities
-      // onCreate after a device orientation change. So the Blog uri may be incorrect.
+      // Note: this onCreate may be called before the parent activity's onCreate, and
+      // after a device orientation change. So the Blog uri may be incorrect.
       // Container activity should make sure to call useBlogMgr to set it correctly.
-      
-      /* use one pointer for the first location, and another for the rest */
-      mIconFirst = BitmapDescriptorFactory.fromResource(R.drawable.marker_green_go);
-      mIcon = BitmapDescriptorFactory.fromResource(R.drawable.marker_blue_circle);
-      
-      mMap = null;
    }
 
    public void useBlogMgr(BlogDataManager blogMgr) {
@@ -101,24 +94,27 @@ public class MapTripFragment extends SupportMapFragment {
    public void onResume() {
       super.onResume();
       
-      Uri uri = mBlogMgr == null ? null : mBlogMgr.uri();
+      // Make sure blog has correct data loaded
+      // We may come here from another Travel Blog activity screen through the
+      // Android back stack, so the current trip data pointed to mBlogMgr may have
+      // changed.
+      mBlogMgr.onResumeSetup(getActivity(), R.string.open_failed_one_file);
+      
       // Display all the markers on the map. The GoogleMap object remembers all the
       // markers on a pause and resume, so we only need to this once.
-      if (mMap == null && uri != null) {
-         // Always open the file:
-         // We may come here from another Travel Blog activity screen through the
-         // Android back stack, so the current trip data pointed to mBlogMgr may have
-         // changed.
-         mBlogMgr.openBlog(getActivity(), uri, R.string.open_failed_one_file);
-         displayTrip();         
+      if (mMap == null) {
+         displayTrip();
       }
    }
    
    public void displayTrip() {
       
-      String blogname = mBlogMgr.blogname();
-      if (blogname.equals("")) return;
+      if (mBlogMgr.uri() == null) return;
 
+      // Check that Google Play Services are available, otherwise mMap operations will crash
+      // The check below may show a ErrorDialog if Play is not available.
+      if (!Utils.playServicesAvailable(getActivity())) return;
+      
       if (mMap == null) {
          // Try to obtain the map from the SupportMapFragment.
          mMap = super.getMap();
@@ -126,6 +122,11 @@ public class MapTripFragment extends SupportMapFragment {
          if (mMap != null) {
             UiSettings uiSettings = mMap.getUiSettings();
             uiSettings.setZoomControlsEnabled(true);
+            
+            // Use one pointer for the first location, and another for the rest
+            // This can only be called after mMap is available, uses Google Play services
+            mIconFirst = BitmapDescriptorFactory.fromResource(R.drawable.marker_green_go);
+            mIcon = BitmapDescriptorFactory.fromResource(R.drawable.marker_blue_circle);
          }
       } else {
          // We may have displayed a trip previously, and now need to display

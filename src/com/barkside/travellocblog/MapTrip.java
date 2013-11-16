@@ -25,8 +25,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v4.app.NavUtils;
-import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -76,7 +74,8 @@ public class MapTrip extends ActionBarActivity {
          mapFrag = (MapTripFragment)
                getSupportFragmentManager().findFragmentById(R.id.map_trip_fragment);
 
-         blogUri = savedInstanceState.getParcelable("BLOG_URI");
+         mBlogMgr.onRestoreInstanceState(savedInstanceState);
+         blogUri = mBlogMgr.uri();
          Log.d(TAG, "onCreate savedInstanceState uri " + blogUri);
       }
       
@@ -85,9 +84,10 @@ public class MapTrip extends ActionBarActivity {
    }
    
    // Note that fragment onResume is called after the parent activity onResume
-   // Do not depend on order of onResume calls, use onResumeFragments instead.
+   // Use onResumeFragments instead to guarantee order.
    @Override
    protected void onResumeFragments() {
+      // Fragment will load the file into mBlogMgr and display the map data.
       super.onResumeFragments();
       
       // Whether to show trip info distance in miles or km
@@ -113,16 +113,7 @@ public class MapTrip extends ActionBarActivity {
    @Override
    public void onSaveInstanceState(Bundle savedInstanceState) {
       super.onSaveInstanceState(savedInstanceState);
-      Uri uri = mBlogMgr.uri();
-      Log.d(TAG, "save instance state uri: " + uri);
-      // Save UI state changes to the savedInstanceState.
-      // This bundle will be passed to onCreate if the process is
-      // killed and restarted.
-      if (uri != null) {
-         savedInstanceState.putParcelable("BLOG_URI", uri);
-      } else {
-         savedInstanceState.remove("BLOG_URI");
-      }
+      mBlogMgr.onSaveInstanceState(savedInstanceState);
    }
 
    @Override
@@ -152,20 +143,7 @@ public class MapTrip extends ActionBarActivity {
          return true;
          // Respond to the action bar's Up/Home button
       case android.R.id.home:
-         Intent upIntent = NavUtils.getParentActivityIntent(this);
-         if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
-            // This activity is NOT part of this app's task, so create a new task
-            // when navigating up, with a synthesized back stack.
-            TaskStackBuilder.create(this)
-            // Add all of this activity's parents to the back stack
-            .addNextIntentWithParentStack(upIntent)
-            // Navigate up to the closest parent
-            .startActivities();
-         } else {
-            // This activity is part of this app's task, so simply
-            // navigate up to the logical parent activity.
-            NavUtils.navigateUpTo(this, upIntent);
-         }
+         Utils.handleUpNavigation(this, mBlogMgr.uri());
          return true;
       default:
          return super.onOptionsItemSelected(item);

@@ -16,14 +16,18 @@
 
 package com.barkside.travellocblog;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GooglePlayServicesClient;
-import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.location.LocationClient;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.maps.model.LatLng;
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.PatternSyntaxException;
 
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.IntentSender;
 import android.location.Address;
 import android.location.Geocoder;
@@ -34,13 +38,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
-import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -48,10 +45,13 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Locale;
-import java.util.regex.PatternSyntaxException;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesClient;
+import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.location.LocationClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.maps.model.LatLng;
 
 /**
  * http://developer.android.com/training/location/receive-location-updates.html
@@ -337,7 +337,7 @@ public abstract class LocationUpdates extends ActionBarActivity implements
         // event - neither onConnected nor onLocationChanged. Detect that and report to user.
         if (mUpdatesRequested && !isLocationServiceOn()) 
         {
-           if (mDisplayedServiceOffMessage )
+           if (mDisplayedServiceOffMessage)
            {
               // We display the dialog only once, after that, just a Toast is enough
               Toast.makeText(this, R.string.no_location_services_message, Toast.LENGTH_SHORT).show();
@@ -413,43 +413,13 @@ public abstract class LocationUpdates extends ActionBarActivity implements
     }
 
     /**
-     * Verify that Google Play services is available before making a request.
-     *
-     * @return true if Google Play services is available, otherwise false
-     */
-    protected boolean servicesConnected() {
-
-        // Check that Google Play services is available
-        int resultCode =
-                GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
-
-        // If Google Play services is available
-        if (ConnectionResult.SUCCESS == resultCode) {
-            // Log.d(TAG, getString(R.string.play_services_available));
-
-            // Continue
-            return true;
-        // Google Play services was not available for some reason
-        } else {
-            // Display an error dialog
-            Dialog dialog = GooglePlayServicesUtil.getErrorDialog(resultCode, this, 0);
-            if (dialog != null) {
-                ErrorDialogFragment errorFragment = new ErrorDialogFragment();
-                errorFragment.setDialog(dialog);
-                errorFragment.show(getSupportFragmentManager(), TAG);
-            }
-            return false;
-        }
-    }
-
-    /**
      * Calls getLastLocation() to get the current location
      */
     public Location getLastLocation() {
 
        Location location = null;
         // If Google Play Services is available
-        if (servicesConnected() && mLocationClient != null) {
+        if (Utils.playServicesAvailable(this) && mLocationClient != null) {
 
             // Get the current location
             location = mLocationClient.getLastLocation();
@@ -500,7 +470,7 @@ public abstract class LocationUpdates extends ActionBarActivity implements
             return;
         }
 
-        if (servicesConnected() && mLocationClient != null) {
+        if (Utils.playServicesAvailable(this) && mLocationClient != null) {
 
             // Get the current location
             Location currentLocation = mLocationClient.getLastLocation();
