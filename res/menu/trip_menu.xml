@@ -9,9 +9,6 @@
           android:icon="@drawable/ic_action_share"
           local:showAsAction="ifRoom"
           android:title="@string/menu_send" />    
-    <item android:id="@+id/trip_info"
-          android:icon="@drawable/ic_menu_info_details"
-          android:title="@string/menu_info" />
     <item android:id="@+id/map_trip"
           android:icon="@drawable/ic_menu_mapmode"
           android:title="@string/menu_map" />             

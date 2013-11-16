@@ -16,7 +16,15 @@
             android:summaryOn="@string/default_desc_on"
             android:defaultValue="true"
             android:title="@string/default_desc_title" />
-    </PreferenceCategory>
+        
+        <ListPreference
+            android:key="distance_units"
+            android:entries="@array/distance_units_entries"
+            android:entryValues="@array/distance_units_values"
+            android:defaultValue="@string/distance_units_default"
+            android:summary="@string/distance_units_default"
+            android:title="@string/distance_units" />
+        </PreferenceCategory>
     <PreferenceCategory android:title="@string/about_settings_title" >
         <Preference android:title="@string/about_menu_title" >
             <intent

@@ -17,9 +17,9 @@ public class SettingsActivity extends PreferenceActivity {
     // To display a What's new message once on first start after update of the app,
     // we keep track of the app version used each time we start the app.
     public final static String LAST_VERSION_USED_KEY = "last_version";
+    // Whether to display Map Trip info in km or miles
+    public final static String DISTANCE_UNITS_KEY = "distance_units";
 
-    ListPreference m_updateList;
-   
     @SuppressWarnings("deprecation") // addPreferencesFromResource is used below
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -35,20 +35,11 @@ public class SettingsActivity extends PreferenceActivity {
         
         addPreferencesFromResource(R.xml.preferences);
         
-        m_updateList = (ListPreference) findPreference(LOCATION_DURATION_KEY);
+        // Display changes to the Location Duration setting
+        initializeListUpdates(LOCATION_DURATION_KEY);
 
-        String currentValue = m_updateList.getValue();
-        if (currentValue != null) {
-            updateListSummary(currentValue); 
-        }
-
-        m_updateList.setOnPreferenceChangeListener(new OnPreferenceChangeListener() {
-            @Override
-            public boolean onPreferenceChange(Preference preference, Object newValue) {
-                updateListSummary(newValue.toString());
-                return true;
-            }       
-        });        
+        // Display changes to the Distance Units settings
+        initializeListUpdates(DISTANCE_UNITS_KEY);
     }
     
     /**
@@ -56,13 +47,32 @@ public class SettingsActivity extends PreferenceActivity {
      * ListPreference summary element to display the value chosen by user.
      * http://stackoverflow.com/questions/531427/how-do-i-display-the-current-value-of-an-android-preference-in-the-preference-su/11210367#11210367
      */
-    private void updateListSummary(String newValue) {
+    private void updateListSummary(ListPreference updateList, String newValue) {
        Log.d(TAG, "update list value " + newValue);
-       int index = m_updateList.findIndexOfValue(newValue);
-       CharSequence entry = m_updateList.getEntries()[index];
-       m_updateList.setSummary(entry);
+       if (newValue != null) {
+          int index = updateList.findIndexOfValue(newValue);
+          CharSequence entry = updateList.getEntries()[index];
+          updateList.setSummary(entry);          
+       }
     }
 
+    // Add listener to the given ListPreference setting so that it automatically
+    // updates the summary text when user changes the setting.
+    @SuppressWarnings("deprecation") // findPreference is used below
+    private void initializeListUpdates(String listKey) {
+       final ListPreference listPrefs = (ListPreference) findPreference(listKey);
+
+       updateListSummary(listPrefs, listPrefs.getValue());
+
+       listPrefs.setOnPreferenceChangeListener(new OnPreferenceChangeListener() {
+          @Override
+          public boolean onPreferenceChange(Preference preference, Object newValue) {
+             updateListSummary(listPrefs, newValue.toString());
+             return true;
+          }       
+       });          
+
+    }
     /**
      * Can't really use this to start a dialog message to display about, so have
      * to implement an AboutActivity class. In future when we don't need the

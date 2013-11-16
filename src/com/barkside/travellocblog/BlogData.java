@@ -23,6 +23,8 @@ import org.xmlpull.v1.XmlSerializer;
 
 import android.location.Location;
 import android.os.Environment;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.Log;
 import android.util.Xml;
 
@@ -46,14 +48,16 @@ public class BlogData
    
    // All trip files will be stored in this directory under this app's storage
    public static final String TRIP_PATH = "/TravelBlog";
-
-   private String mFilename = null;
    private String mTripRoot = null; // root dir of all the blog/trip files
-   
+
+   // Name of the opened file, or "" if unknown. This is also known as blogname
+   // in other classes. It includes the .kml suffix here, and is the filename.
+   // In case we opened a stream here, this is the value of Uri.getPath().
+   private String mFilename = "";
+      
    // For logging and debugging purposes
    private static final String TAG = "BlogData";
 
-   
    public BlogData(String tripPath) {
       super();
       mTripRoot = tripPath;
@@ -99,15 +103,19 @@ public class BlogData
       return false;
    }
    
-   /** Open blog from given stream. Mark blog name as unknown.
+   /** Open blog from given stream. Set blog name with the value of Uri.getPath().
     * This is a readonly stream, cannot call saveBlogElement but can
     * call saveBlogToFile to save to a new file.
     * 
     */
-   public Boolean openBlog(InputStream stream)
+   public Boolean openBlog(InputStream stream, String uriPath)
    {
       clearBlog();
-      return loadDataFromStream(stream);
+      if (loadDataFromStream(stream)) {
+         mFilename = uriPath;
+         return true;         
+      }
+      return false;
    }
 
    /* for a new blog, we simply open it, and save it */
@@ -142,7 +150,7 @@ public class BlogData
       return status;
    }
 
-   /* rename current blog */
+   /* rename any existing blog */
    public Boolean renameBlog(String filename, String newname) {
       File oldfile = blogToFile(filename);
       File newfile = blogToFile(newname);
@@ -150,7 +158,7 @@ public class BlogData
       if (oldfile != null && newfile != null) {
          renamed = oldfile.renameTo(newfile);
       }
-      if (renamed)
+      if (renamed && mFilename.equals(filename))
       {
          mFilename = newname;
       }
@@ -160,6 +168,11 @@ public class BlogData
    public void clearBlog() {
       mFilename = "";
       mBlogPosts.clear();
+   }
+
+   // Return name of currently loaded file
+   public String blogname() {
+      return mFilename ;
    }
 
    /* return true if the given blog exists */
@@ -685,7 +698,7 @@ public class BlogData
 }
 
 /* The Blog Element used in the array */
-class BlogElement
+class BlogElement implements Parcelable
 {
    public String description = "";
    public String title = "";
@@ -698,6 +711,8 @@ class BlogElement
     * So, make these variables non-null so a string call like trim() or split() won't
     * terminate the app.
     */
+   
+   public BlogElement() { }
 
    /**
     * Given a BlogElement, check if it has valid data, can be saved, etc.
@@ -718,6 +733,65 @@ class BlogElement
          return false;
       }
       return true;
+   }
+   
+   // Compare two BlogElement objects, return true is they have same content.
+   // Canonical code from: http://developer.android.com/reference/java/lang/Object.html
+   @Override
+   public boolean equals(Object o) {
+     // Return true if the objects are identical.
+     // (This is just an optimization, not required for correctness.)
+     if (this == o) {
+       return true;
+     }
+
+     // Return false if the other object has the wrong type.
+     // This type may be an interface depending on the interface's specification.
+     if (!(o instanceof BlogElement)) {
+       return false;
+     }
+
+     // Cast to the appropriate type.
+     // This will succeed because of the instanceof, and lets us access private fields.
+     BlogElement lhs = (BlogElement) o;
+
+     // Check each field. Primitive fields, reference fields, and nullable reference
+     // fields are all treated differently.
+     return (description.equals(lhs.description) &&
+           title.equals(lhs.title) &&
+           location.equals(lhs.location) &&
+           timeStamp.equals(lhs.timeStamp));
+   }
+
+   // Parcelable interface
+   @Override
+   public int describeContents() {
+      return 0;
+   }
+
+   @Override
+   public void writeToParcel(Parcel out, int flags) {
+      out.writeString(description);
+      out.writeString(title);
+      out.writeString(location);
+      out.writeString(timeStamp);
+   }
+   public static final Parcelable.Creator<BlogElement> CREATOR
+   = new Parcelable.Creator<BlogElement>() {
+      public BlogElement createFromParcel(Parcel in) {
+         return new BlogElement(in);
+      }
+
+      public BlogElement[] newArray(int size) {
+         return new BlogElement[size];
+      }
+   };
+
+   private BlogElement(Parcel in) {
+      description = in.readString();
+      title = in.readString();
+      location = in.readString();
+      timeStamp = in.readString();
    }
 
 }

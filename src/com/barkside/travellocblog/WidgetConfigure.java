@@ -33,7 +33,7 @@ public class WidgetConfigure extends ActionBarActivity {
    private static final String TAG = "WidgetConfigure";
 
    // Get list of files from blog manager when needed
-   private BlogDataManager mBlogData = BlogDataManager.getInstance();
+   private BlogDataManager mBlogMgr = new BlogDataManager();
 
    private int mAppWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
 
@@ -91,7 +91,7 @@ public class WidgetConfigure extends ActionBarActivity {
       
    public void onOpenTripClicked(View v) {
       // Open trip button
-      final CharSequence[] fileList = mBlogData.getBlogsList();
+      final CharSequence[] fileList = mBlogMgr.getBlogsList();
       final Context context = WidgetConfigure.this;
       TravelLocBlogMain.selectTripDialog(context, fileList,
             new DialogInterface.OnClickListener() {
@@ -108,7 +108,7 @@ public class WidgetConfigure extends ActionBarActivity {
       TravelLocBlogMain.newTrip(newFileDialog, R.string.menu_new,
             new View.OnClickListener() {
          public void onClick(View v) {
-            String str = TravelLocBlogMain.newTripFilename(newFileDialog, mBlogData);
+            String str = TravelLocBlogMain.newTripFilename(newFileDialog, mBlogMgr);
             if (str != null) {
                updateFilename(str);
             }

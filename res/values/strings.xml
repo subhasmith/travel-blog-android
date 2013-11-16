@@ -3,7 +3,7 @@
 
     <!-- Application identifiers -->
     <string name="app_name">Travel Blog</string>
-    <string name="app_description">        Saves blog entries with location and timestamp.</string>
+    <string name="app_description">Saves blog entries with location and timestamp.</string>
     <string name="edit_post_activity">Edit Post</string>
     <string name="edit_post_name_format">Edit Post #%1$d</string>
     <string name="new_post_name_format">New Post #%1$d</string>
@@ -16,6 +16,12 @@
     <string name="widget_configure_title">Configure Widget</string>
     <string name="import_trip_name">Travel Blog Import</string>
     
+    <!-- Map Trip subtitle trip info example: 2 places, 10.1 miles -->
+    <plurals name="trip_info_title">
+        <item quantity="one">1 place</item>
+        <item quantity="other">%1$d places, %2$.1f %3$s</item>
+    </plurals>
+        
     <!-- Longitude, Latitude format (order is same as KML coordinates element) -->
     <string name="longitude_latitude_format">%1$.4f, %2$.4f</string>
     <string name="latitude_longitude_format">%1$.4f, %2$.4f</string>
@@ -103,7 +109,9 @@
     <string name="about_settings_title">ABOUT</string>
     <string name="about_menu_title">About Travel Blog</string>
     <string name="general_settings_title">GENERAL SETTINGS</string>
-
+    <string name="distance_units">Map trip info distance units</string>
+    <string name="distance_units_default">km</string>
+    
     <!-- Toast Messages -->
     <string name="title_desc_missing">A title or description is required to Save entry.</string>
     <string name="location_missing">A location is required to Save entry.</string>
@@ -122,12 +130,14 @@
     <string name="failed_file_rename">Failed to rename file.</string>
     <string name="map_trip_empty">Map has no locations to show.</string>
     <string name="last_file_open_failed">Failed to open last used trip file.</string>
-    <string name="file_open_failed">Failed to open trip file.</string>
-    <string name="deleted_file">Trip file deleted.</string>
+    <string name="open_failed_title">"[open failed]"</string>
+    <string name="deleted_one_file">"Deleted trip file '%1$s'"</string>
     <string name="delete_file_failed">Could not delete trip file.</string>
-    <string name="file_import_load_failed">Failed to import KML file - incompatible data.</string>
+    <string name="file_import_load_failed">"Failed to import incompatible KML file '%1$s'"</string>
     <string name="file_import_save_failed">Failed to save imported trip.</string>
     <string name="file_imported">Imported trip successfully.</string>
+    
+    <string name="edit_data_invalid">Original entry has changed, cannot continue with this edit.</string>
     
     <string name="final_fallback_lnglat">0,51</string>
     <string name="using_fallback_location">Location estimate failed. Using location 0,51 to initialize editor.</string>
