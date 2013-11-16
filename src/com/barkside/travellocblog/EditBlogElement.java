@@ -56,6 +56,7 @@ public class EditBlogElement extends LocationUpdates
 
    // Index of blog entry being edited/created
    private int mEditItem;
+   private BlogElement mOriginalItem = null;
    
    // We have multiple sources of current location data.
    // The priority is: mEditedLatLng then mBestLocation then mOldLatLng.
@@ -83,14 +84,17 @@ public class EditBlogElement extends LocationUpdates
    // Settings value
    private int mUpdatesDuration = 0; // 0 means no auto-off
    
-   // Shared blog data manager among activities
-   private BlogDataManager mBlogMgr = BlogDataManager.getInstance();
-
-   // Uri of trip file being edited.
-   private Uri mBlogUri = null;
+   // Blog Manager stores name and uri of current blog, as well
+   // as a static shared data pointer to actual file data.
+   private BlogDataManager mBlogMgr = new BlogDataManager();
    
    // Internal request code for sub-activity
-   private final int EDIT_LOCATION_REQUEST = 100;
+   private static final int EDIT_LOCATION_REQUEST = 100;
+   
+   // Internal Parcelable key names for saved/restored objects
+   private static final String EDITED_LATLNG_KEY = "EditedLatLng";
+   private static final String BEST_LOCATION_KEY = "BestLocation";
+   private static final String ORIGINAL_ITEM_KEY = "OriginalItem";
 
    /**
     * Return the layout to inflate, to the abstract base class.
@@ -139,8 +143,10 @@ public class EditBlogElement extends LocationUpdates
       if (savedInstanceState != null)
       {
          Log.d(TAG, "restore instance state");
-         mEditedLatLng = savedInstanceState.getParcelable("mEditedLatLng");
-         mBestLocation = savedInstanceState.getParcelable("mBestLocation");
+         mEditedLatLng = savedInstanceState.getParcelable(EDITED_LATLNG_KEY);
+         mBestLocation = savedInstanceState.getParcelable(BEST_LOCATION_KEY);
+         mOriginalItem = savedInstanceState.getParcelable(ORIGINAL_ITEM_KEY);
+
          // No need to restore (or save) the title and description TextView fields,
          // since the system does that automatically.
       }
@@ -157,8 +163,6 @@ public class EditBlogElement extends LocationUpdates
          return;
       }
 
-      // Store the Uri of just the blog name, without the index.
-      mBlogUri = Utils.blognameToUri(blogname);
       // update ActionBar title with blog name
       // to support SDK 11 and older, need to use getSupportActionBar
       ActionBar actionBar = getSupportActionBar();
@@ -213,12 +217,15 @@ public class EditBlogElement extends LocationUpdates
       {
          // Requested to edit: set that state, and the data being edited.
          mIsNewEntry = false;
-         BlogElement blog = mBlogMgr.getBlogElement(mEditItem);
+         BlogElement blog = mOriginalItem;
+         if (blog == null)
+            blog = mBlogMgr.getBlogElement(mEditItem);
 
          mTitle = blog.title;
          String descr = blog.description;
          mOldTime = blog.timeStamp;
          mOldLngLat = blog.location;
+         mOriginalItem = blog;
 
          EditText tv = (EditText) findViewById(R.id.edit_title);
          tv.setText(mTitle);
@@ -266,14 +273,9 @@ public class EditBlogElement extends LocationUpdates
       // Android back stack, so the current trip pointed to mBlogMgr may have
       // changed. Therefore, we should load the blog again and re-compute the
       // index being added, if we can.
-      boolean opened = mBlogMgr.openBlog(this, mBlogUri);
+      Uri uri = mBlogMgr.uri();
+      boolean opened = mBlogMgr.openBlog(this, uri, R.string.open_failed_one_file);
       if (!opened) {
-         String blogname = Utils.uriToBlogname(mBlogUri);
-         String message = String.format(getString(R.string.open_failed_one_file),
-               blogname);
-         Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-         actionBar.setSubtitle(R.string.file_open_failed);
-         
          // Finish activity, failure status
          setResult(TravelLocBlogMain.RESULT_SAVE_FAILED);
          sendResultAndFinish();
@@ -290,16 +292,40 @@ public class EditBlogElement extends LocationUpdates
       } else {
          // This works fine if we are coming here and have not started any additional
          // Travel Blog activity screen launches on the Android stack.
-         // TODO: Warning:
+         // 
+         // But:
          // If we come back here and user has used the home screen to navigate to
          // launcher and start another Travel Blog activity, and edited the same
-         // trip file, then the index has changed, but we don't know how...
-         // No good options exist here - may overwrite the wrong entry? No good
-         // to detect this condition also - user may add/delete entries and then
-         // come back here.
-         // Best thing to do is to move to a database for storage, and support
+         // trip file, then the index may have changed...
+         // To avoid overwriting the wrong entry we compare original blog entry
+         // to the current blog text at that index.
+         //
+         // Future: better thing to do is to move to a database for storage, and support
          // immediate save and undo. That way, the entry is immediately saved
          // in onPause and so on.
+         BlogElement blog = mBlogMgr.getBlogElement(mEditItem);
+         if (!blog.equals(mOriginalItem)) {
+            // Finish this activity. We don't need to popup a modal dialog since that
+            // is too intrusive and anyway, user can't do anything. Also: Android itself
+            // may terminate activities if user has not completed them, and if we are here,
+            // then this activity has been up for a long time, and user has edited the same
+            // file in another activity screen. So, ok to report this condition and finish to
+            // go back to main screen, where the correct current blog entries will be displayed.
+            // Finish activity, failure status
+
+            Log.w(TAG, "Discarded activity - original item has changed underneath us.");
+            // Should we show this toast? This activity has not been shown yet,
+            // so seeing this toast may be confusing. So suppress it - in any case,
+            // Android itself may terminate old activities that are not completed by user,
+            // so this falls in the same category - silently discarded to avoid corrupting
+            // the trip file.
+            // Toast.makeText(this, R.string.edit_data_invalid,Toast.LENGTH_LONG).show();
+
+            setResult(TravelLocBlogMain.RESULT_SAVE_FAILED);
+            sendResultAndFinish();
+            return;
+         }
+
          subtitleId = R.string.edit_post_name_format;
       }
       // Display a subtitle with the 1-based index of the element
@@ -383,7 +409,6 @@ public class EditBlogElement extends LocationUpdates
     */
    public void editLocation(View view)
    {
-      Log.d(TAG, "start editLocation activity");
 
       // Since we going to manually edit the location, turn off the location updates.
       stopPeriodicUpdates();
@@ -394,11 +419,14 @@ public class EditBlogElement extends LocationUpdates
       // Start new edit location activity
       Intent i = new Intent(this, EditLocation.class);
       Bundle b = new Bundle();
-      b.putString("BLOG_NAME", mBlogMgr.openedName());
+      String blogname = mBlogMgr.blogname();
+      b.putString("BLOG_NAME", blogname);
       b.putString("POST_NAME", mTitle);
       b.putInt("POST_INDEX", mEditItem);
       LatLng latlng = getCurrentLatLng();
+      
       Log.d(TAG, "calling editLocation with " + latlng);
+      
       if (latlng != null)
       {
          b.putParcelable("POST_LATLNG", latlng);         
@@ -649,8 +677,9 @@ public class EditBlogElement extends LocationUpdates
      // Save UI state changes to the savedInstanceState.
      // This bundle will be passed to onCreate if the process is
      // killed and restarted.
-     savedInstanceState.putParcelable("mEditedLatLng", mEditedLatLng);
-     savedInstanceState.putParcelable("mBestLocation", mBestLocation);
+     savedInstanceState.putParcelable(EDITED_LATLNG_KEY, mEditedLatLng);
+     savedInstanceState.putParcelable(BEST_LOCATION_KEY, mBestLocation);
+     savedInstanceState.putParcelable(ORIGINAL_ITEM_KEY, mOriginalItem);
    }
 
    @Override

@@ -6,8 +6,6 @@
     <drawable name="semitransparent_blue">#866F</drawable>    
     <drawable name="semitransparent_black">#8000</drawable>    
     <drawable name="opaque_black">#F000</drawable>    
-    <drawable name="opaque_blue">#F338</drawable>    
-    <drawable name="opaque_white">#FFFF</drawable>
      
     <drawable name="divider_color">#8888</drawable>    
 </resources>

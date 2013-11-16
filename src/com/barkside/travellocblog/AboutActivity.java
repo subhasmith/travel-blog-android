@@ -1,14 +1,11 @@
 package com.barkside.travellocblog;
 
-import com.google.android.gms.common.GooglePlayServicesUtil;
-
 import android.os.Bundle;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.support.v7.app.ActionBarActivity;
 import android.text.method.LinkMovementMethod;
-import android.util.Log;
 import android.widget.TextView;
+
+import com.google.android.gms.common.GooglePlayServicesUtil;
 
 /*
  * Activity to display About information, including Legal Notices
@@ -16,7 +13,7 @@ import android.widget.TextView;
 
 public class AboutActivity extends ActionBarActivity
 {
-   private static final String TAG = "AboutActivity";
+   // private static final String TAG = "AboutActivity";
 
    @Override
    protected void onCreate(Bundle savedInstanceState)
@@ -24,15 +21,7 @@ public class AboutActivity extends ActionBarActivity
       super.onCreate(savedInstanceState);
       setContentView(R.layout.about_activity);
       
-      String version = "0.0.0"; // to denote unknown version
-      try
-      {
-         PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
-         version = pInfo.versionName;
-      } catch (NameNotFoundException e)
-      {
-         Log.d(TAG, "Failed to get version string " + e);
-      }
+      String version = Utils.getAppVersion(this);
       
       // App name and version number
       TextView tv = (TextView) findViewById(R.id.app_name);

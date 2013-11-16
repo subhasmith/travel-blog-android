@@ -24,7 +24,7 @@ November 2013
    
  * Rename Trip menu command added. This and Delete Trip is now under a Manage Trips submenu.
  
- * Open Trip menu command now available from Map Trip activity also.
+ * Open Trip menu command now available from Map Trip activity also
  
  * Alert dialog now displayed if there is an error saving edited blog post or deleting a post.
    This used to be just a brief Toast message, but since failing to update trip file is a
@@ -34,18 +34,37 @@ November 2013
  
  * Send feedback email now contains app version code and number, and subject includes
    device information.
- 
- * Internally created a new data manager to allow multiple activities to share a single
-   trip object so it has to be loaded only once instead of multiple times.
    
- * Use Intent.setData and Uri to start the main activities. For example, the New Post and
-   Edit Post activity is started with content://AUTHORITY/blogname/index and action name
-   Intent.ACTION_INSERT_OR_EDIT.
-
- * Updated a bunch of drawable ic_ icons. Added ic_action_done checkmark.
+ * Map Trip screen now shows the trip info in the activity subtitle.
+   This shows the number of locations in the map, and total distance of the segments.
+   Distance units can be miles or km, and can be changed in the Settings menu.
  
  * MapTripFragment is now a fragment, and the code/UI for this fragment is loaded into
    two activities - the Map Trip screen, and the Import Trip screen.
+
+ * Trip names can now be created with . (period) allowed.
+   Disallowed characters are: / \ * ? < > : as of this release.
+
+ * Use Intent.setData and Uri to start the main activities. For example, the New Post and
+   Edit Post activity is started with content://AUTHORITY/blogname/index and action name
+   Intent.ACTION_INSERT_OR_EDIT.
+   
+ * All older releases may have had a rare and obscure window which could have resulted in
+   losing entries. See comments in EditBlogElement.onResume. This is all theoretical, but
+   now should be fixed in a bunch of protection mechanisms:
+   Internally created a new data manager to allow multiple activities to share a single
+   trip file object so it has to be loaded only once instead of multiple times. And at
+   specific call points, we verify we have correct data and will raise an AssertionError
+   to terminate the app if continuing will lead to corruption.
+   Activities now always reload data in onResume in case some other Travel Blog activity
+   in the Android back stack edited the same trip, so that each activity always has
+   the correct data loaded at all times.
+   EditBlogElement additionally makes sure that it is editing the same entry as it was before
+   re-entering an onResume call otherwise it will terminate the activity to avoid corrupting
+   the trip file.
+   
+   
+ * Updated a bunch of drawable ic_ icons. Added ic_action_done checkmark.
 
 Version 2.0.1
 ============

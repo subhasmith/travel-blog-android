@@ -6,7 +6,7 @@
         <item>30 seconds</item>
         <item>15 seconds after first update</item>
         <item>No auto-off</item>
-        </string-array>
+    </string-array>
 
     <!--
     http://code.google.com/p/android/issues/detail?id=2096
@@ -17,8 +17,20 @@
     <string-array name="location_duration_values">
         <item>15</item> 
         <item>30</item>
-        <item>-15</item>  <!-- @string/location_duration_default -->
-        <item>-9999</item> <!--  should match mNoAutOff in LocationUpdates class -->
+        <item>-15</item>   <!-- @string/location_duration_default -->
+        <item>-9999</item> <!-- should match mNoAutOff in LocationUpdates class -->
+    </string-array>
+
+    <!--  entries are displayed to user -->
+    <string-array name="distance_units_entries">
+        <item>Km</item>
+        <item>Miles</item>
+    </string-array>
+
+    <!--  values are received by the code -->
+    <string-array name="distance_units_values">
+        <item>km</item>  <!-- @string/distance_units_default -->
+        <item>miles</item>
     </string-array>
 
 </resources>

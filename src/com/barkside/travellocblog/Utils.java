@@ -1,5 +1,7 @@
 package com.barkside.travellocblog;
 
+import java.util.Locale;
+
 import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -77,13 +79,13 @@ public enum Utils {
             // versionCode 5 (version 1.7) or older
             SharedPreferences settings = context.getSharedPreferences(TravelLocBlogMain.PREFS_NAME, 0);
             blogname = settings.getString("defaultTrip", null);
-            if (blogname != null && blogname.isEmpty()) blogname = null;
+            if (blogname != null && blogname.equals("")) blogname = null;
          }
       }
       
       if (blogname == null) {
          blogname = context.getString(R.string.default_trip);
-         if (blogname != null && blogname.isEmpty()) blogname = null;
+         if (blogname != null && blogname.equals("")) blogname = null;
       }
       Log.d(TAG, "getBlognameFromIntent returns: " + blogname);
       return blogname;
@@ -95,7 +97,7 @@ public enum Utils {
    {
       SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
       String blogname = settings.getString(SettingsActivity.LAST_OPENED_TRIP_KEY, null);
-      if (blogname != null && blogname.isEmpty()) blogname = null;
+      if (blogname != null && blogname.equals("")) blogname = null;
       Log.d(TAG, "Trying last opened file: " +  blogname);
       return blogname;
    }
@@ -182,7 +184,7 @@ public enum Utils {
       
       // Initialize body text with a few system details
       PackageInfo pInfo = Utils.getAppPackageInfo(context);
-      String text = String.format("Tag: %s. SDK#%d. %s Version: %s #%d.\n\n",
+      String text = String.format(Locale.US, "Tag: %s. SDK#%d. %s Version: %s #%d.\n\n",
             tag, Build.VERSION.SDK_INT, context.getString(R.string.app_name),
             pInfo.versionName, pInfo.versionCode);
       
@@ -281,7 +283,7 @@ public enum Utils {
    // Get the app package info with version name, version code, etc.
    public static PackageInfo getAppPackageInfo(Context context)
    {
-      PackageInfo pInfo = null; // to denote unknown version
+      PackageInfo pInfo = null;
       try
       {
          pInfo = context.getPackageManager()
@@ -289,6 +291,7 @@ public enum Utils {
       } catch (NameNotFoundException e)
       {
          Log.d(TAG, "Failed to get PackageInfo " + e);
+         pInfo = new PackageInfo(); // to denote null version
       }
       return pInfo;
    }
@@ -317,6 +320,8 @@ public enum Utils {
    // path cannot be a number - it will be taken as an id.
    // Not an issue for this app, since all paths end in .kml suffix.
    public static String uriToBlogname(Uri uri) {
+      if (uri == null) return "";
+      
       String scheme = uri.getScheme();
       String name = uri.getPath(); // this includes the id
       boolean hasId = false;

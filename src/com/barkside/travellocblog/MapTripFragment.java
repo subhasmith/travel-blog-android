@@ -16,6 +16,15 @@
 
 package com.barkside.travellocblog;
 
+import android.annotation.SuppressLint;
+import android.graphics.Color;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.view.ViewTreeObserver.OnGlobalLayoutListener;
+
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
@@ -26,17 +35,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
-
-import android.annotation.SuppressLint;
-import android.content.Context;
-import android.graphics.Color;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
-import android.view.ViewTreeObserver.OnGlobalLayoutListener;
-import android.widget.Toast;
 
 /**
  * Fragment to display all the blog entry locations on a map.
@@ -54,103 +52,91 @@ public class MapTripFragment extends SupportMapFragment {
    private static final String TAG       = "MapTripFragment";
 
    private GoogleMap           mMap;
-   private Uri                 mTripUri;
 
    private BitmapDescriptor    mIcon     = null;
    private BitmapDescriptor    mIconFirst= null;
    
+   // mBlogMgr is set by container activity in its onCreate
+   private BlogDataManager     mBlogMgr  = null;
+
    /**
     * Create a new instance of MyFragment that will be initialized
     * with the given arguments.
     */
-   static MapTripFragment newInstance(Uri uri) {
+   public static MapTripFragment newInstance() {
       MapTripFragment f = new MapTripFragment();
+      /*
+       * Not passing args. Uri may change in the middle of the activity if
+       * user opens a new trip, so just use the mBlogMgr to always get
+       * correct blog name.
       Bundle b = new Bundle();
       b.putParcelable("BLOG_URI", uri);
       f.setArguments(b);
-      Log.d(TAG, "newInstance " + f);
+       */
       return f;
    }
 
-
    @Override
    public void onCreate(Bundle savedInstanceState) {
-      Log.d(TAG, "onCreate ");
       super.onCreate(savedInstanceState);
       
-      mTripUri = null;
-      final Bundle args = getArguments();
-      if (args != null) {
-          mTripUri = args.getParcelable("BLOG_URI");
-      }
-
-      Log.d(TAG, "got uri " + mTripUri);
+      // Note: this onCreate may be called before the parent activities
+      // onCreate after a device orientation change. So the Blog uri may be incorrect.
+      // Container activity should make sure to call useBlogMgr to set it correctly.
+      
       /* use one pointer for the first location, and another for the rest */
       mIconFirst = BitmapDescriptorFactory.fromResource(R.drawable.marker_green_go);
       mIcon = BitmapDescriptorFactory.fromResource(R.drawable.marker_blue_circle);
+      
+      mMap = null;
    }
 
+   public void useBlogMgr(BlogDataManager blogMgr) {
+      mBlogMgr = blogMgr;
+   }
+   
+   // Note that fragment onResume is called after the parent activity onResume
+   // Do not depend on order of onResume calls.
    @Override
    public void onResume() {
       super.onResume();
       
+      Uri uri = mBlogMgr == null ? null : mBlogMgr.uri();
       // Display all the markers on the map. The GoogleMap object remembers all the
       // markers on a pause and resume, so we only need to this once.
-      if (mMap == null) {
-         openTrip(mTripUri);         
+      if (mMap == null && uri != null) {
+         // Always open the file:
+         // We may come here from another Travel Blog activity screen through the
+         // Android back stack, so the current trip data pointed to mBlogMgr may have
+         // changed.
+         mBlogMgr.openBlog(getActivity(), uri, R.string.open_failed_one_file);
+         displayTrip();         
       }
-      // We may come here from another Travel Blog activity screen through the
-      // Android back stack, so the current trip pointed to mBlogMgr may have
-      // changed. But we don't need care, since we have already displayed the
-      // map markers, and GoogleMap takes care of onResume redrawing.
    }
    
-   // Open given blog, and display it on the map.
-   // User may select specific trip files from the menu, we will open them and display
-   // the locations on the map. This is a view-only, secondary activity operation therefore
-   // we don't save any newly opened trip file to the Preferences. This means that the
-   // back button will behave sensibly - when user returns to any previous Travel Blog
-   // activity screen, that screen will continue to show the same trip file it was displaying
-   // and not be affected by the trip files opened in this Map Trip activity.
-   public boolean openTrip(Uri uri) {
+   public void displayTrip() {
       
-      if (uri == null) return false;
-      
-      BlogDataManager blogMgr = BlogDataManager.getInstance();
+      String blogname = mBlogMgr.blogname();
+      if (blogname.equals("")) return;
 
-      Context context = getActivity();
-      boolean opened = false;
-      opened = blogMgr.openBlog(context, uri);
-
-      if (opened) {
-         if (mMap == null) {
-            // Try to obtain the map from the SupportMapFragment.
-            mMap = super.getMap();
-            // Check if we were successful in obtaining the map.
-            if (mMap != null) {
-               UiSettings uiSettings = mMap.getUiSettings();
-               uiSettings.setZoomControlsEnabled(true);
-            }
-         } else {
-            // We may have displayed a trip previously, and now need to display
-            // another trip. Place the markers from the new trip on the map. 
-            // Since the trip may be empty, reset the map to start with.
-            LatLng latlng = LocationUpdates.stringToLatLng(
-                  getString(R.string.final_fallback_lnglat));
-            mMap.clear();
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latlng, 6.0f));
-         }
-         Log.d(TAG, "mMap is " + mMap);
+      if (mMap == null) {
+         // Try to obtain the map from the SupportMapFragment.
+         mMap = super.getMap();
+         // Check if we were successful in obtaining the map.
          if (mMap != null) {
-            Log.d(TAG, "Map trip " + uri);
-            addMarkersToMap(blogMgr);
+            UiSettings uiSettings = mMap.getUiSettings();
+            uiSettings.setZoomControlsEnabled(true);
          }
       } else {
-         // Failed to open requested file.
-         Toast.makeText(context, R.string.file_open_failed,
-               Toast.LENGTH_SHORT).show();
+         // We may have displayed a trip previously, and now need to display
+         // another trip. Place the markers from the new trip on the map. 
+         // Since the trip may be empty, reset the map to start with.
+         LatLng latlng = LocationUpdates.stringToLatLng(
+               getString(R.string.final_fallback_lnglat));
+         mMap.clear();
+         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latlng, 6.0f));
       }
-      return opened;
+      addMarkersToMap();
    }
 
    /*
@@ -162,22 +148,22 @@ public class MapTripFragment extends SupportMapFragment {
       // Save any current setting ? Nothing for now.
       super.onPause();
    }
-
+   
    /**
     * Add all the note locations as markers and draw lines between them.
     */
-   private void addMarkersToMap(BlogDataManager blogMgr) {
+   private void addMarkersToMap() {
       /*
       Maybe TODO: run this in a thread, yielding ever so often, otherwise, UI
       thread may be blocked for too long if adding 1000+ markers.
       Tested with 300-1000 markers on a 2011 phone, and that seems to be fine.
-      For large number of notes, saving the file is probably a bigger issuse than this.
+      For large number of notes, saving the file is probably a bigger issue than this.
       Use new Thread() and runOnUiThread or use AsyncThread for loading markers, if needed.
     */
 
-      int count = blogMgr.getMaxBlogElements();
+      int count = mBlogMgr.getMaxBlogElements();
       Log.d(TAG, "Add markers to map, count: " + count);
-      if (count <= 0) {
+      if (count <= 0 || mMap == null) {
          return;
       }
       
@@ -185,8 +171,8 @@ public class MapTripFragment extends SupportMapFragment {
       PolylineOptions polylineOptions = new PolylineOptions();
       BitmapDescriptor icon = mIconFirst; 
 
-      for (int i = 0; i < blogMgr.getMaxBlogElements(); ++i) {
-         BlogElement blog = blogMgr.getBlogElement(i);
+      for (int i = 0; i < mBlogMgr.getMaxBlogElements(); ++i) {
+         BlogElement blog = mBlogMgr.getBlogElement(i);
          if ((blog.title == null) || (blog.location == null)
                || (blog.location.length() == 0) || (blog.title.length() == 0)) {
             continue;
@@ -219,8 +205,8 @@ public class MapTripFragment extends SupportMapFragment {
       mMap.addPolyline(polylineOptions.width(4).color(Color.BLUE));
 
       // fit map to points. Pan to see all markers in view.
+      // Log.d(TAG, "addMarkers bounds = " + bounds.build());
       // Cannot zoom to bounds until the map has a size, so have to do this:
-      Log.d(TAG, "addMarkers bounds = " + bounds.build());
       
       final View mapView = getView();
       final LatLngBounds boundsB = bounds.build();
@@ -249,4 +235,9 @@ public class MapTripFragment extends SupportMapFragment {
       }
    }
 
+   // Parent activity may need to know name of the uri being displayed and display
+   // other such info about the displayed trip. Pass the BlogDataManager for it to
+   // query it for needed information.
+   public BlogDataManager blogMgr() { return mBlogMgr; }
+   
 }
