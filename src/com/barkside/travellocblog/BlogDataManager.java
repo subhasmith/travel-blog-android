@@ -8,6 +8,7 @@ import java.util.Locale;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.net.Uri;
+import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -57,6 +58,9 @@ public final class BlogDataManager {
    private String mBlogname = "";
    private Uri mUri = null;
    
+   // Saving key value in a bundle for pause/restore
+   private static final String BLOG_URI_KEY = "BlogDataManagerUri";
+   
    /*
     * Open the given blog Uri. And load if it is not already loaded.
     * If open fails, prints a Toast message with failmessageId if it is > 0.
@@ -82,32 +86,51 @@ public final class BlogDataManager {
          clearBlog();
          return false;
       }
-      String filename = Utils.uriToBlogname(uri);
       boolean opened = false;
+      
+      // If same blog name, then just use existing mBlogData
+      String blogname = Utils.uriToBlogname(uri);
+      String currentName = mBlogData.blogname();
+      
+      Log.d(TAG, "openBlog name: " + blogname);
+      
+      if (!currentName.equals("") && currentName.equals(blogname)) {
+         Log.d(TAG, "return blog already opened: " + blogname);
+         mBlogname = blogname;
+         mUri = uri;
+         return true;         
+      }
 
-      if (filename == null || filename.equals("")) {
+      // Have to read blog data from the Uri file or stream
+      // Clear all data first, then load the blog.
+      clearBlog();
+      if (Utils.uriIsInternal(uri)) {
+         // It is an internal implicit intent with blogname.
+         // This call will check if we have this already opened, nothing to do in that case.
+         opened = mBlogData.openBlog(blogname);
+      } else {
          // This is an external Uri, probably from an ACTION_SEND
          ContentResolver cr = context.getContentResolver();
          InputStream cis;
          try {
             cis = cr.openInputStream(uri);
-            opened = this.openBlogStream(cis, uri);
+            opened = mBlogData.openBlog(cis, blogname);
          } catch (FileNotFoundException e) {
             cis = null;
             Log.d(TAG, "Content resolver failed for " + uri);
          }
-
-      } else {
-         // Otherwise, we assume it is an internal implicit intent with blogname.
-         // This call will check if we have this already opened, nothing to do in that case.
-         opened = this.openBlogFile(filename, uri);
       }
       
-      if (!opened) {
-         clearBlog();
+      if (opened) {
+         // Successfully opened blog
+         mBlogname = blogname;
+         mUri = uri;
+         
+      } else {
+         // Failed to open blog
          if (failMessageId > 0) {
             // Report that we failed to open requested file.
-            String message = String.format(context.getString(failMessageId), filename);
+            String message = String.format(context.getString(failMessageId), blogname);
             Toast.makeText(context, message, Toast.LENGTH_LONG).show();
          }
       }
@@ -115,50 +138,6 @@ public final class BlogDataManager {
       return opened;
    }
    
-   // Internal function to open a blog from an Travel Blog managed trip file
-   private Boolean openBlogFile(String blogname, Uri uri) {
-
-      // If same blog name, then just use existing mBlogData
-      String currentName = mBlogData.blogname();
-      // In the future, may use File.lastModified() times to detect on-disk file change.
-      if (!currentName.equals("") && currentName.equals(blogname)) {
-         Log.d(TAG, "return filename already opened: " + blogname);
-         mBlogname = blogname;
-         mUri = uri;
-         return true;         
-      }
-      clearBlog();
-      if (mBlogData.openBlog(blogname)) {
-         Log.d(TAG, "opened file: " + blogname);
-         mBlogname = blogname;
-         mUri = uri;
-         return true;
-      }
-      return false; // failed open
-   }
-
-   // Internal function to open a blog from an non-Travel Blog ContentResolver stream
-   private Boolean openBlogStream(InputStream stream, Uri uri) {
-      
-      // If same blog name, then just use existing mBlogData
-      String currentName = mBlogData.blogname();
-      String uriPath = uri.getPath();
-      if (!currentName.equals("") && currentName.equals(uriPath)) {
-         Log.d(TAG, "return stream already opened: " + uri);
-         mBlogname = uriPath;
-         mUri = uri;
-         return true;         
-      }
-      clearBlog();
-      if (mBlogData.openBlog(stream, uriPath)) {
-         Log.d(TAG, "opened stream: " + uriPath);
-         mBlogname = uriPath;
-         mUri = uri;
-         return true;
-      }
-      return false; // failed open
-   }
-
    public Boolean newBlog(String blogname) {
       clearBlog();
       if (mBlogData.newBlog(blogname)) {
@@ -177,7 +156,7 @@ public final class BlogDataManager {
       return mBlogData.deleteBlog(blogname);
    }
 
-   public void clearBlog() {
+   private void clearBlog() {
       mBlogData.clearBlog();
       mBlogname = ""; // reset opened file
       mUri = null;
@@ -223,9 +202,7 @@ public final class BlogDataManager {
    }
 
    // Access methods for currently opened blog name (with suffix) and Uri
-   // Note: these are only valid if openBlog or loadBlogIfNeeded has been done, and no other
-   // Travel Blog activity was started after that which loaded another file.
-   // In other words, make sure openBlog is called in onResume to load required file.
+   // Note that actual data loaded may be of a different file. See this.onResume().
    public String blogname() {  return mBlogname; }
    public Uri uri() { return mUri; }
 
@@ -266,6 +243,34 @@ public final class BlogDataManager {
       }
       return true;
    }
+   
+   // Support for Activity actions to save and restore blog name, and to setup data
+   // data correctly on an Activity.onResume.
+   
+   // Save instance state by recording the name of the blog being used.
+   // This will allow us to restore it when needed, and reload it in an onCreate.
+   public void onSaveInstanceState(Bundle savedInstanceState) {
+      Uri uri = this.uri();
+      Log.d(TAG, "save instance state uri: " + uri);
+      savedInstanceState.putParcelable(BLOG_URI_KEY, uri);
+   }
+   
+   // Reload the blog name from saved state. Call this in an onCreate or
+   // Activity.onRestoreInstanceState().
+   public void onRestoreInstanceState(Bundle savedInstanceState) {
+      mUri = savedInstanceState.getParcelable(BLOG_URI_KEY);
+      mBlogname = Utils.uriToBlogname(mUri);
+   }
+   
+   // Reload the correct blog to resume activity on the blog.
+   // Blog is actually reloaded from disk only if it is not already loaded.
+   public boolean onResumeSetup(Context context, int failMessageId) {
+      return this.openBlog(context, mUri, failMessageId);
+   }
+   public boolean onResumeSetup(Context context) {
+      return this.openBlog(context, mUri);
+   }
+   
    // Single instance of the BlogData object.
    // Nothing much here, but in case need to add other functions, made this
    // into a separate class instead of just using BlogData object in BlogDataManager.

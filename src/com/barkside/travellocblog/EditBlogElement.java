@@ -5,8 +5,6 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import com.google.android.gms.maps.model.LatLng;
-
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -15,8 +13,6 @@ import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.v4.app.NavUtils;
-import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.ActionBar;
 import android.util.Log;
 import android.view.Menu;
@@ -28,6 +24,8 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.maps.model.LatLng;
 
 /**
  * Activity to edit a note (a blog entry) that contains title, description,
@@ -149,11 +147,13 @@ public class EditBlogElement extends LocationUpdates
 
          // No need to restore (or save) the title and description TextView fields,
          // since the system does that automatically.
+         // Also no need to restore or save blog uri since we never load a new trip
+         // in this activity and it stays the same as the intent.getData() value.
       }
       
       Uri uri = intent.getData();
       String blogname = Utils.openBlogFromIntent(this, uri, mBlogMgr);
-      if (blogname == null)
+      if (blogname == null || blogname.equals(""))
       {
          // If we could not open requested file or the default file, we have
          // nothing to do, so have to error out.
@@ -273,8 +273,9 @@ public class EditBlogElement extends LocationUpdates
       // Android back stack, so the current trip pointed to mBlogMgr may have
       // changed. Therefore, we should load the blog again and re-compute the
       // index being added, if we can.
-      Uri uri = mBlogMgr.uri();
-      boolean opened = mBlogMgr.openBlog(this, uri, R.string.open_failed_one_file);
+      
+      boolean opened = mBlogMgr.onResumeSetup(this, R.string.open_failed_one_file);
+      
       if (!opened) {
          // Finish activity, failure status
          setResult(TravelLocBlogMain.RESULT_SAVE_FAILED);
@@ -420,16 +421,17 @@ public class EditBlogElement extends LocationUpdates
       Intent i = new Intent(this, EditLocation.class);
       Bundle b = new Bundle();
       String blogname = mBlogMgr.blogname();
-      b.putString("BLOG_NAME", blogname);
-      b.putString("POST_NAME", mTitle);
-      b.putInt("POST_INDEX", mEditItem);
+      
+      b.putString(EditLocation.BLOG_NAME_KEY, blogname);
+      b.putString(EditLocation.POST_TITLE_KEY, mTitle);
+      b.putInt(EditLocation.POST_INDEX_KEY, mEditItem);
       LatLng latlng = getCurrentLatLng();
       
       Log.d(TAG, "calling editLocation with " + latlng);
       
       if (latlng != null)
       {
-         b.putParcelable("POST_LATLNG", latlng);         
+         b.putParcelable(EditLocation.INITIAL_LATLNG_KEY, latlng);         
       }
       i.putExtras(b);
       i.setAction(Intent.ACTION_EDIT);
@@ -602,7 +604,7 @@ public class EditBlogElement extends LocationUpdates
          if (resultCode == RESULT_OK)
          {
             Bundle extras = intent.getExtras();
-            LatLng latlng = extras.getParcelable("POST_LATLNG");
+            LatLng latlng = extras.getParcelable(EditLocation.CURRENT_LATLNG_KEY);
             mEditedLatLng = latlng;
             Log.d(TAG, "Got location from EditLocation exit: " + latlng);
          }
@@ -680,6 +682,9 @@ public class EditBlogElement extends LocationUpdates
      savedInstanceState.putParcelable(EDITED_LATLNG_KEY, mEditedLatLng);
      savedInstanceState.putParcelable(BEST_LOCATION_KEY, mBestLocation);
      savedInstanceState.putParcelable(ORIGINAL_ITEM_KEY, mOriginalItem);
+     
+     // No need to save blog uri, since we never change it after onCreate
+     // mBlogMgr.onSaveInstanceState(savedInstanceState);
    }
 
    @Override
@@ -708,20 +713,7 @@ public class EditBlogElement extends LocationUpdates
             
        // Respond to the action bar's Up/Home button
        case android.R.id.home:
-          Intent upIntent = NavUtils.getParentActivityIntent(this);
-          if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
-              // This activity is NOT part of this app's task, so create a new task
-              // when navigating up, with a synthesized back stack.
-              TaskStackBuilder.create(this)
-                      // Add all of this activity's parents to the back stack
-                      .addNextIntentWithParentStack(upIntent)
-                      // Navigate up to the closest parent
-                      .startActivities();
-          } else {
-              // This activity is part of this app's task, so simply
-              // navigate up to the logical parent activity.
-              NavUtils.navigateUpTo(this, upIntent);
-          }
+          Utils.handleUpNavigation(this, mBlogMgr.uri());
           return true;
 
          default:

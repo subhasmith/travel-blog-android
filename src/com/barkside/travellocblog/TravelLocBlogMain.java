@@ -83,9 +83,6 @@ public class TravelLocBlogMain extends ActionBarActivity
    static final String INVALID_CHARS = "[/\\\\*?<>:]";
    static final Pattern INVALID_CHARS_PATTERN = Pattern.compile(INVALID_CHARS);
    
-   // Saving key value in a bundle for pause/restore
-   static final String BLOG_URI_KEY = "BlogUri";
-
    /* Called when the activity is first created. */
    @Override
    public void onCreate(Bundle savedInstanceState)
@@ -95,17 +92,16 @@ public class TravelLocBlogMain extends ActionBarActivity
       
       initListUI(); // sets up mBlogList
       
-      Uri uri;
-      String blogname = "";
       if (savedInstanceState != null)
       {
-         // Device reoriented, need to open saved Uri
-         uri = savedInstanceState.getParcelable(BLOG_URI_KEY);
-         blogname = Utils.uriToBlogname(uri);
-         mBlogMgr.openBlog(this, uri, R.string.open_failed_one_file);
+         // Device reoriented, need to get name of correct Uri to use
+         mBlogMgr.onRestoreInstanceState(savedInstanceState);
+         // No need to reopen blog here, onResume will handle it.
       }
       else
       {
+         Uri uri;
+         String blogname = "";
          // No saved instance, use data from intent
          // We may be called with no data, in which case we open the last opened file,
          // or we may be passed an Uri to open.
@@ -120,8 +116,6 @@ public class TravelLocBlogMain extends ActionBarActivity
             Log.w(TAG, "Failed to open any file including default.");
          }
       }
-      uri = mBlogMgr.uri();
-      blogname = mBlogMgr.blogname();
       
       SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
       
@@ -197,14 +191,11 @@ public class TravelLocBlogMain extends ActionBarActivity
       // changed. Therefore, we should load the blog again. If current file
       // has not changed, openTrip blogMgr will just use current data and won't
       // actually load the file from disk.
-      boolean opened = false;
-      String blogname = mBlogMgr.blogname();
-      if (!blogname.equals(""))
-      {
-         opened = openTrip(blogname);
-         // Even if failed to open, refresh list of items (to empty if needed).
-         refreshList();
-      }
+      
+      boolean opened = mBlogMgr.onResumeSetup(this, R.string.open_failed_one_file);
+      // Even if failed to open, refresh list of items (to empty if needed).
+      refreshList();
+
       if (!opened)
       {
          // Do not finish this main activity. Allow user to select new file
@@ -243,13 +234,7 @@ public class TravelLocBlogMain extends ActionBarActivity
      // Save UI state changes to the savedInstanceState.
      // This bundle will be passed to onCreate if the process is
      // killed and restarted.
-     Uri uri = mBlogMgr.uri();
-     if (uri != null)
-     {
-        savedInstanceState.putParcelable(BLOG_URI_KEY, uri);
-     }
-     // If no current open file, we leave the old last opened file preference setting unchanged,
-     // don't remove it, in case the file pops back into existence in a later run.
+     mBlogMgr.onSaveInstanceState(savedInstanceState);
    }
 
    /*

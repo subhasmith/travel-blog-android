@@ -53,7 +53,7 @@ public class BlogData
    // Name of the opened file, or "" if unknown. This is also known as blogname
    // in other classes. It includes the .kml suffix here, and is the filename.
    // In case we opened a stream here, this is the value of Uri.getPath().
-   private String mFilename = "";
+   private String mBlogname = "";
       
    // For logging and debugging purposes
    private static final String TAG = "BlogData";
@@ -69,8 +69,7 @@ public class BlogData
    }
 
    /*
-    * this function closes anything that is already open, then opens new file,
-    * or creates
+    * this function closes anything that is already open, then opens new file
     */
    public Boolean openBlog(String filename)
    {
@@ -97,22 +96,21 @@ public class BlogData
       clearBlog();
       if (filename != null)
       {
-         mFilename = filename;
+         mBlogname = filename;
          return loadDataFromFile();
       }
       return false;
    }
    
-   /** Open blog from given stream. Set blog name with the value of Uri.getPath().
-    * This is a readonly stream, cannot call saveBlogElement but can
+   /** Open blog from given stream. Set blog name to given argument value.
+    * This may be a readonly stream, in which case cannot call saveBlogElement but can
     * call saveBlogToFile to save to a new file.
-    * 
     */
-   public Boolean openBlog(InputStream stream, String uriPath)
+   public Boolean openBlog(InputStream stream, String blogname)
    {
       clearBlog();
       if (loadDataFromStream(stream)) {
-         mFilename = uriPath;
+         mBlogname = blogname;
          return true;         
       }
       return false;
@@ -142,7 +140,7 @@ public class BlogData
          {
          Log.d(TAG, "Deleted file " + path);
          // Did we delete the current file belonging to this object?
-         if (mFilename.equals(filename))
+         if (mBlogname.equals(filename))
          {
             clearBlog();
          }
@@ -158,21 +156,21 @@ public class BlogData
       if (oldfile != null && newfile != null) {
          renamed = oldfile.renameTo(newfile);
       }
-      if (renamed && mFilename.equals(filename))
+      if (renamed && mBlogname.equals(filename))
       {
-         mFilename = newname;
+         mBlogname = newname;
       }
       return renamed;
    }
 
    public void clearBlog() {
-      mFilename = "";
+      mBlogname = "";
       mBlogPosts.clear();
    }
 
    // Return name of currently loaded file
    public String blogname() {
-      return mFilename ;
+      return mBlogname ;
    }
 
    /* return true if the given blog exists */
@@ -244,7 +242,7 @@ public class BlogData
          mBlogPosts.add(element);
       }
       
-      if (saveBlogToFile(mFilename) == false)
+      if (saveBlogToFile(mBlogname) == false)
       {
          refreshData();
          return false;
@@ -254,7 +252,7 @@ public class BlogData
 
    // Return true if this is a valid, successfully opened blog.
    private boolean valid() {
-      return mFilename != null;
+      return mBlogname != null;
    }
 
    /* deletes blog element */
@@ -263,7 +261,7 @@ public class BlogData
       if (index < mBlogPosts.size())
       {
          mBlogPosts.remove(index);
-         if (saveBlogToFile(mFilename) == false)
+         if (saveBlogToFile(mBlogname) == false)
          {
             refreshData();
             return false;
@@ -289,6 +287,18 @@ public class BlogData
       if (index < mBlogPosts.size())
          return mBlogPosts.get(index);
       return null;
+   }
+
+   // Load data from mBlogname into mBlogPosts etc
+   private Boolean loadDataFromFile()
+   {
+      File file = this.blogToFile(mBlogname);
+      try {
+         return loadDataFromStream(new FileInputStream(file));
+      }
+      catch (FileNotFoundException e) {
+         return false;
+      }
    }
 
    /* This parses the kml file, adding all the data to our class data structure mBlogs.
@@ -445,19 +455,6 @@ public class BlogData
 
       Log.d(TAG, "Loaded KML ");
       return true;
-   }
-
-   // Load data from mFileName into mBlogPosts etc
-   private Boolean loadDataFromFile()
-   {
-      String path = fullBlogPath(mFilename);
-      File file = new File(path);
-      try {
-         return loadDataFromStream(new FileInputStream(file));
-      }
-      catch (FileNotFoundException e) {
-         return false;
-      }
    }
    
    /* Only used for the overall trip stats - rudimentary stuff */

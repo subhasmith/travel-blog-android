@@ -49,6 +49,13 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
    
    private GoogleMap mMap;
    private Marker mMapMarker;
+   
+   // Save/restore information keys
+   public static final String BLOG_NAME_KEY = "EditLocationBlogName";
+   public static final String POST_TITLE_KEY = "EditLocationPostTitle";
+   public static final String POST_INDEX_KEY = "EditLocationPostName";
+   public static final String INITIAL_LATLNG_KEY = "EditLocationInitialLatlng";
+   public static final String CURRENT_LATLNG_KEY = "EditLocationCurrentLatlng";
 
    @Override
    public void onCreate(Bundle savedInstanceState)
@@ -63,10 +70,10 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
       if (Intent.ACTION_EDIT.equals(action))
       {
          Bundle extras = intent.getExtras();
-         String filename = extras.getString("BLOG_NAME");
-         String postTitle = extras.getString("POST_NAME");
-         int blogIndex = extras.getInt("POST_INDEX");
-         mOldLatLng = extras.getParcelable("POST_LATLNG"); // may be null
+         String filename = extras.getString(BLOG_NAME_KEY);
+         String postTitle = extras.getString(POST_TITLE_KEY);
+         int blogIndex = extras.getInt(POST_INDEX_KEY);
+         mOldLatLng = extras.getParcelable(INITIAL_LATLNG_KEY); // may be null
          mNewLatLng = mOldLatLng;
          
          // Restore UI state from the savedInstanceState.
@@ -74,7 +81,7 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
          if (savedInstanceState != null)
          {
             Log.d(TAG, "restore instance state");
-            mNewLatLng = savedInstanceState.getParcelable("mNewLatLng");
+            mNewLatLng = savedInstanceState.getParcelable(CURRENT_LATLNG_KEY);
          }
          
          if (mNewLatLng == null)
@@ -114,7 +121,7 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
       super.onResume();
       Log.d(TAG, "onResume");
  
-      if (super.servicesConnected()) {
+      if (Utils.playServicesAvailable(this)) {
     	 setUpMapIfNeeded();
       }
    }
@@ -172,7 +179,8 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
 
          Intent intent = new Intent();
          Bundle extras = new Bundle();
-         extras.putParcelable("POST_LATLNG", mNewLatLng);
+         
+         extras.putParcelable(CURRENT_LATLNG_KEY, mNewLatLng);
          Log.d(TAG, "done with location edit " + mNewLatLng);
          intent.putExtras(extras);
          setResult(RESULT_OK, intent);
@@ -276,7 +284,7 @@ public class EditLocation extends LocationUpdates implements OnMarkerDragListene
      // Save UI state changes to the savedInstanceState.
      // This bundle will be passed to onCreate if the process is
      // killed and restarted.
-     savedInstanceState.putParcelable("mNewLatLng", mNewLatLng);
+     savedInstanceState.putParcelable(CURRENT_LATLNG_KEY, mNewLatLng);
    }
 
 
