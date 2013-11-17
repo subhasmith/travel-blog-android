@@ -5,7 +5,7 @@
     android:minResizeHeight="40dp"
     android:minResizeWidth="40dp"
     android:updatePeriodMillis="0"
-    android:previewImage="@drawable/ic_widget_place_new"
+    android:previewImage="@drawable/ic_widget_preview"
 	android:resizeMode="horizontal|vertical"
 	android:widgetCategory="home_screen"
 	android:configure="com.barkside.travellocblog.WidgetConfigure"
