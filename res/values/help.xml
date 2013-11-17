@@ -16,10 +16,10 @@ If you need to modify the location, you can later edit the location on a map.\n
 \n
 You can <b>edit a post</b> by clicking on it, and you can <b>delete a post</b> by long-clicking on a post and selecting the delete command.
 When editing you can edit the name and description,
-and optionally to edit the location of your post by clicking on the location coordinates.\n
+and edit the location of your post by clicking on the location coordinates.\n
 \n
 You can view your trip on a Google map on your device by choosing <b>Map Trip</b> from the menu.
-You can copy the KML blog file manually to do what you choose with it, or you can send it via email
+You can copy the KML blog file manually if needed, or you can send it via email
 or wherever your device can send it to by choosing Send Trip from the menu.\n
 \n
 The <b>Manage Trip</b> menu brings up a sub-menu.\n
@@ -80,13 +80,16 @@ is on the web.\n
 This widget allows direct access to the New Post screen.\n
 \n
 It can be configured to always use a specific selected trip file, or to use the default
-last opened trip file of the Travel Blog application.\n
+last opened trip file of the Travel Blog main activity.\n
 \n
 First pick the appropriate choice of trip files: app default trip, or selected trip.\n
 \n
-If you chose selected trip, then the two buttons Select Trip and New Trip become usable.
-Use Select Trip button to select an existing trip file. Use New Trip button to create
-a new trip file and select it.\n
+The default last opened trip file is the last file that was manually opened using the
+Open Trip menu command in the main Travel Blog activity screen.\n
+\n
+Alternately, the specific trip file to use can be selected. In this case the two buttons
+Select Trip and New Trip become usable. Use Select Trip button to select an existing trip file. 
+Use New Trip button to create a new trip file and select it.\n
 \n
 After the correct option or trip is selected, complete the configuration by clicking on
 the Use [selected option] button. This will exit the configuration and install the widget.

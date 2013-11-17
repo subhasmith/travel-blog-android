@@ -1,7 +1,5 @@
 package com.barkside.travellocblog;
 
-import java.util.Arrays;
-
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
@@ -32,14 +30,13 @@ public class TravelLocWidget extends AppWidgetProvider {
    public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
       final int N = appWidgetIds.length;
 
-      Log.i(TAG,  "onUpdate " + Arrays.asList(appWidgetIds));
-
       // Perform this loop procedure for each App Widget that belongs to this
       // provider
       for (int i = 0; i < N; i++) {
          int appWidgetId = appWidgetIds[i];
 
          String filename = WidgetConfigure.getKeyTripFile(context, appWidgetId);
+         Log.i(TAG,  "onUpdate " + appWidgetId + " filename: " + filename);
 
          TravelLocWidget.updateAppWidget(context, appWidgetManager,
                appWidgetId, filename);

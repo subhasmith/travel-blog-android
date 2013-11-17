@@ -76,12 +76,13 @@ public class WidgetConfigure extends ActionBarActivity {
       mBtnOpenTrip = (Button) findViewById(R.id.open_trip);
       mBtnDone = (Button) findViewById(R.id.use_trip);
 
-      // Use the layout config to determine mUseSelected
-      RadioButton radio_option = (RadioButton) findViewById(R.id.option_selected);
-      updateUseSelected(radio_option.isChecked());
+      // Determine while file to use, assuming mUseSelected == true
+      updateFilename(getKeyTripFile(this, mAppWidgetId)); // updates mFilename
 
-      // Finally: attempt to find and display this widget's trip file name.
-      updateFilename(getKeyTripFile(this, mAppWidgetId));
+      // Use the layout config to determine actual value of mUseSelected
+      RadioButton radio_option = (RadioButton) findViewById(R.id.option_selected);
+      boolean useSelected = radio_option.isChecked();
+      updateUseSelected(useSelected); // updates mUseSelected
    }
 
    @Override
@@ -179,10 +180,15 @@ public class WidgetConfigure extends ActionBarActivity {
       mBtnDone.setText(String.format(doneFormat, doneText));    
    }
    
-   // Update name of currently selected file, and also show it in action bar
+   // Update name of currently selected file, and display it in the UI
+   // If there is no preference saved, uses the default trip name
    private void updateFilename(String filename) {
+      if (filename == null) {
+         filename = this.getString(R.string.default_trip);
+      }
+
       mFilename = filename;
-      // If necessary update ActionBar title here. Not doing that, since it is
+      // If necessary update ActionBar subtitle here. Not doing that, since it is
       // difficult to notice this in this activity, so created mSelectedTripText
       // instead to display the file name.
       updateUseSelected(true);
@@ -208,7 +214,7 @@ public class WidgetConfigure extends ActionBarActivity {
       Log.d(TAG, "Widget set trip name key: " + widgetKey);
       Log.d(TAG, "Widget set trip name value: " + name);
 
-      editor.putString(widgetKey, name);
+      editor.putString(widgetKey, name); // name can be null
       editor.commit();
    }
 
@@ -221,9 +227,6 @@ public class WidgetConfigure extends ActionBarActivity {
       Log.d(TAG, "Widget get trip name key: " + widgetKey);
 
       String name = settings.getString(widgetKey, null);
-      if (name == null) {
-         name = context.getString(R.string.default_trip);
-      }
       return name;
    }
    
