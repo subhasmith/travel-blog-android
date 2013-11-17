@@ -157,7 +157,8 @@ public enum Utils {
          // could not open any file, report which files failed to open
          if (secondname != null) {
             message = String.format(context.getString(R.string.open_failed_both_files),
-                  firstname, secondname);
+                  // secondname.toString suppresses wrong lint error message
+                  firstname, secondname.toString());
          } else {
             message = String.format(context.getString(R.string.open_failed_one_file),
                   firstname);
