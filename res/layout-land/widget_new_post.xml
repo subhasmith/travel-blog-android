@@ -25,28 +25,24 @@
          (above numbers for normal, portrait screen orientation)
          Allow manual resize to make it 1 x 1 cell minimum. -->
          
-    <!-- Divider. Can't use View for Widget, so using ImageView instead -->
+    <!-- Vertical Divider. Can't use View for Widget, so using ImageView instead -->
     <ImageView
         android:id="@+id/widget_divider1"
         style="@style/divider"
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:layout_alignParentTop="true"
+        android:layout_width="2dp"
+        android:layout_height="match_parent"
         android:contentDescription="@string/menu_new_post"
-        android:paddingBottom="0dp"
-        android:paddingLeft="4dp"
-        android:paddingRight="4dp"
-        android:paddingTop="0dp"
+        android:paddingLeft="2dp"
+        android:paddingRight="2dp"
         android:scaleType="fitXY" />
     
     <!--  The New Post button icon -->
     <ImageView
         android:id="@+id/widget_new_post"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="wrap_content"        
+        android:layout_toRightOf="@id/widget_divider1"
         android:background="@drawable/widget_click_text"
-        android:layout_below="@id/widget_divider1"
-        android:layout_alignParentLeft="true"
         android:src="@drawable/ic_widget_place_new"
         android:contentDescription="@string/menu_new_post"
         android:paddingLeft="12dp"
@@ -54,29 +50,26 @@
         android:paddingTop="0dp"
         android:paddingBottom="0dp"/>
     
-    <!-- Divider. Can't use View for Widget, so using ImageView instead -->
+    <!-- Vertical Divider. Can't use View for Widget, so using ImageView instead -->
     <ImageView
         android:id="@+id/widget_divider2"
         style="@style/divider"
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:layout_below="@id/widget_new_post"
+        android:layout_width="2dp"
+        android:layout_height="match_parent"
+        android:layout_toRightOf="@id/widget_new_post"
         android:contentDescription="@string/menu_new_post"
-        android:paddingLeft="4dp"
-        android:paddingRight="4dp"
-        android:paddingTop="1dp"
-        android:paddingBottom="1dp"
+        android:paddingLeft="0dp"
+        android:paddingRight="8dp"
         android:scaleType="fitXY" />
     
     <TextView
         android:id="@+id/widget_tripname"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:layout_below="@id/widget_divider1"
-        android:layout_toRightOf="@id/widget_new_post"
+        android:layout_toRightOf="@id/widget_divider2"
         android:layout_centerVertical="true"
         android:ellipsize="end"
-        android:paddingTop="0dp"
+        android:paddingLeft="8dp"
         android:gravity="center"
         android:lines="1"
         android:textAppearance="?android:attr/textAppearanceSmall" />
